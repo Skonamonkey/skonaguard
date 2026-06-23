@@ -25,11 +25,22 @@
     <div class="card-body">
         <form method="POST" action="/settings">
             <input type="hidden" name="action" value="server">
-            <div class="form-row" style="margin-bottom:16px">
-                <div class="form-group">
-                    <label>Server Public IP</label>
-                    <input type="text" name="server_public_ip" value="{{ settings.server_public_ip ?? '' }}" placeholder="e.g. 213.171.194.152">
+            <div style="background:var(--surface-input); border:1px solid var(--border-input); border-radius:var(--radius-sm); padding:16px; margin-bottom:16px">
+                <p style="font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-muted); margin:0 0 12px">Endpoints — used in peer .conf files</p>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>WAN / Public Endpoint <span style="color:var(--color-danger)">*</span></label>
+                        <input type="text" name="server_public_ip" value="{{ settings.server_public_ip ?? '' }}" placeholder="e.g. 213.171.194.152 or vpn.example.com">
+                        <small style="color:var(--text-muted)">Public IP or hostname — for peers connecting over the internet.</small>
+                    </div>
+                    <div class="form-group">
+                        <label>LAN / Local Endpoint <span style="color:var(--text-muted)">(optional)</span></label>
+                        <input type="text" name="server_lan_ip" value="{{ settings.server_lan_ip ?? '' }}" placeholder="e.g. 192.168.1.50">
+                        <small style="color:var(--text-muted)">LAN IP — if set, peers on the same network can download a local config.</small>
+                    </div>
                 </div>
+            </div>
+            <div class="form-row" style="margin-bottom:16px">
                 <div class="form-group">
                     <label>WireGuard Port</label>
                     <input type="text" name="wg_port" value="{{ settings.wg_port ?? '51820' }}" placeholder="51820">

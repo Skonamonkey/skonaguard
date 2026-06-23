@@ -40,13 +40,15 @@ class SettingsController
             return $this->changePassword($response, $body);
         }
 
-        $serverIp = trim($body['server_public_ip'] ?? '');
-        $wgPort   = trim($body['wg_port'] ?? '51820');
-        $wgSubnet = trim($body['wg_subnet'] ?? '');
+        $serverIp  = trim($body['server_public_ip'] ?? '');
+        $serverLan = trim($body['server_lan_ip'] ?? '');
+        $wgPort    = trim($body['wg_port'] ?? '51820');
+        $wgSubnet  = trim($body['wg_subnet'] ?? '');
 
         if ($serverIp) {
             $this->db->execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('server_public_ip', ?)", [$serverIp]);
         }
+        $this->db->execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('server_lan_ip', ?)", [$serverLan]);
         if ($wgPort) {
             $this->db->execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('wg_port', ?)", [$wgPort]);
         }

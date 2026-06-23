@@ -29,12 +29,14 @@ class PeersController
         ");
         $zones    = $this->db->query("SELECT * FROM zones ORDER BY name");
         $profiles = $this->db->query("SELECT * FROM profiles ORDER BY name");
+        $lanIp    = $this->db->queryOne("SELECT value FROM settings WHERE key = 'server_lan_ip'")['value'] ?? '';
 
         return $this->view->render($response, 'peers/index.twig', [
-            'active_nav' => 'peers',
-            'peers'      => $peers,
-            'zones'      => $zones,
-            'profiles'   => $profiles,
+            'active_nav'      => 'peers',
+            'peers'           => $peers,
+            'zones'           => $zones,
+            'profiles'        => $profiles,
+            'has_lan_endpoint' => $lanIp !== '',
         ]);
     }
 
@@ -132,8 +134,10 @@ class PeersController
             return $response->withStatus(404);
         }
 
-        $conf     = $this->wg->generateClientConfig($id);
-        $filename = strtolower(preg_replace('/[^a-z0-9]+/i', '-', $peer['name'])) . '.conf';
+        $mode     = $request->getQueryParams()['mode'] ?? 'wan';
+        $conf     = $this->wg->generateClientConfig($id, $mode);
+        $suffix   = $mode === 'lan' ? '-lan' : '';
+        $filename = strtolower(preg_replace('/[^a-z0-9]+/i', '-', $peer['name'])) . $suffix . '.conf';
 
         $response->getBody()->write($conf);
         return $response
@@ -150,6 +154,7 @@ class PeersController
 
         $body    = (array) $request->getParsedBody();
         $expires = trim($body['expires'] ?? '');
+        $mode    = in_array($body['mode'] ?? '', ['lan', 'wan']) ? $body['mode'] : 'wan';
 
         $token = bin2hex(random_bytes(32));
         $expiresAt = match ($expires) {
@@ -169,7 +174,7 @@ class PeersController
         $host   = $request->getHeaderLine('X-Forwarded-Host')  ?: $uri->getHost();
         $host   = explode(',', $host)[0];
         $appUrl = rtrim($scheme . '://' . trim($host), '/');
-        $link   = $appUrl . '/dl/' . $token;
+        $link   = $appUrl . '/dl/' . $token . ($mode === 'lan' ? '?mode=lan' : '');
 
         $data = ['url' => $link, 'token' => $token, 'expires_at' => $expiresAt];
         $response->getBody()->write((string) json_encode($data));
@@ -190,8 +195,10 @@ class PeersController
         $peer = $this->db->queryOne("SELECT * FROM peers WHERE id = ?", [$row['peer_id']]);
         if (!$peer) return $response->withStatus(404);
 
-        $conf     = $this->wg->generateClientConfig((int) $peer['id']);
-        $filename = strtolower(preg_replace('/[^a-z0-9]+/i', '-', $peer['name'])) . '.conf';
+        $mode     = $request->getQueryParams()['mode'] ?? 'wan';
+        $conf     = $this->wg->generateClientConfig((int) $peer['id'], $mode);
+        $suffix   = $mode === 'lan' ? '-lan' : '';
+        $filename = strtolower(preg_replace('/[^a-z0-9]+/i', '-', $peer['name'])) . $suffix . '.conf';
 
         $response->getBody()->write($conf);
         return $response
@@ -204,7 +211,8 @@ class PeersController
         $peer = $this->db->queryOne("SELECT * FROM peers WHERE id = ?", [$id]);
         if (!$peer) return $response->withStatus(404);
 
-        $conf = $this->wg->generateClientConfig($id);
+        $mode = $request->getQueryParams()['mode'] ?? 'wan';
+        $conf = $this->wg->generateClientConfig($id, $mode);
         $encoded = base64_encode($conf);
 
         $response->getBody()->write((string) json_encode(['config_b64' => $encoded]));

@@ -80,12 +80,29 @@
                             <button class="btn-icon" title="Edit" onclick='openEditModal({{ peer|json_encode }})'>
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                             </button>
+                            {% if has_lan_endpoint %}
+                            <div class="btn-split" title="Download .conf">
+                                <a href="/peers/{{ peer.id }}/download" class="btn-icon btn-split-main" title="Download WAN config">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                                </a>
+                                <button class="btn-icon btn-split-toggle" onclick="toggleDownloadMenu({{ peer.id }})" title="More download options">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                                </button>
+                                <div class="btn-split-menu" id="dl-menu-{{ peer.id }}" style="display:none">
+                                    <a href="/peers/{{ peer.id }}/download" class="split-menu-item">⬇ WAN Config (internet)</a>
+                                    <a href="/peers/{{ peer.id }}/download?mode=lan" class="split-menu-item">⬇ LAN Config (local network)</a>
+                                    <button class="split-menu-item" onclick="showQr({{ peer.id }}, '{{ peer.name|e('js') }}', 'wan')">⬛ QR — WAN</button>
+                                    <button class="split-menu-item" onclick="showQr({{ peer.id }}, '{{ peer.name|e('js') }}', 'lan')">⬛ QR — LAN</button>
+                                </div>
+                            </div>
+                            {% else %}
                             <a href="/peers/{{ peer.id }}/download" class="btn-icon" title="Download .conf">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                             </a>
-                            <button class="btn-icon" title="QR Code" onclick="showQr({{ peer.id }}, '{{ peer.name|e('js') }}')">
+                            <button class="btn-icon" title="QR Code" onclick="showQr({{ peer.id }}, '{{ peer.name|e('js') }}', 'wan')">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
                             </button>
+                            {% endif %}
                             <button class="btn-icon" title="Create Share Link" onclick="openTokenModal({{ peer.id }}, '{{ peer.name|e('js') }}')">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
                             </button>
@@ -277,14 +294,25 @@
             </button>
         </div>
         <div class="modal-body">
-            <div class="form-group" style="margin-bottom:16px">
-                <label>Link Expiry</label>
-                <select id="token-expires">
-                    <option value="1h">1 Hour</option>
-                    <option value="24h" selected>24 Hours</option>
-                    <option value="7d">7 Days</option>
-                    <option value="">No Expiry</option>
-                </select>
+            <div class="form-row" style="margin-bottom:16px">
+                <div class="form-group">
+                    <label>Link Expiry</label>
+                    <select id="token-expires">
+                        <option value="1h">1 Hour</option>
+                        <option value="24h" selected>24 Hours</option>
+                        <option value="7d">7 Days</option>
+                        <option value="">No Expiry</option>
+                    </select>
+                </div>
+                {% if has_lan_endpoint %}
+                <div class="form-group">
+                    <label>Config Type</label>
+                    <select id="token-mode">
+                        <option value="wan">WAN (internet)</option>
+                        <option value="lan">LAN (local network)</option>
+                    </select>
+                </div>
+                {% endif %}
             </div>
             <button class="btn btn-primary" id="token-generate-btn" onclick="generateToken()">Generate Link</button>
             <div class="token-result" id="token-result">
@@ -369,12 +397,27 @@ function confirmDelete(id, name) {
     openModal('modal-delete');
 }
 
-function showQr(peerId, peerName) {
-    document.getElementById('qr-modal-title').textContent = 'QR Code — ' + peerName;
+function toggleDownloadMenu(peerId) {
+    const menu = document.getElementById('dl-menu-' + peerId);
+    const isOpen = menu.style.display !== 'none';
+    document.querySelectorAll('.btn-split-menu').forEach(m => m.style.display = 'none');
+    menu.style.display = isOpen ? 'none' : 'block';
+}
+
+document.addEventListener('click', e => {
+    if (!e.target.closest('.btn-split')) {
+        document.querySelectorAll('.btn-split-menu').forEach(m => m.style.display = 'none');
+    }
+});
+
+function showQr(peerId, peerName, mode) {
+    mode = mode || 'wan';
+    const label = mode === 'lan' ? ' (LAN)' : ' (WAN)';
+    document.getElementById('qr-modal-title').textContent = 'QR Code — ' + peerName + label;
     document.getElementById('qr-container').innerHTML = '<span style="color:var(--text-muted)">Loading…</span>';
     openModal('modal-qr');
 
-    fetch('/peers/' + peerId + '/qr')
+    fetch('/peers/' + peerId + '/qr?mode=' + mode)
         .then(r => r.json())
         .then(data => {
             if (typeof QRCode === 'undefined') {
@@ -407,6 +450,7 @@ function openTokenModal(peerId, peerName) {
 function generateToken() {
     if (!currentTokenPeerId) return;
     const expires = document.getElementById('token-expires').value;
+    const mode    = document.getElementById('token-mode') ? document.getElementById('token-mode').value : 'wan';
     const btn = document.getElementById('token-generate-btn');
     btn.disabled = true;
     btn.textContent = 'Generating…';
@@ -414,7 +458,7 @@ function generateToken() {
     fetch('/peers/' + currentTokenPeerId + '/token', {
         method: 'POST',
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-        body: 'expires=' + encodeURIComponent(expires),
+        body: 'expires=' + encodeURIComponent(expires) + '&mode=' + encodeURIComponent(mode),
     })
     .then(r => r.json())
     .then(data => {

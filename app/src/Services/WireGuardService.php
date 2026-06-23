@@ -44,7 +44,7 @@ class WireGuardService
         throw new \RuntimeException("No available IPs in zone subnet");
     }
 
-    public function generateClientConfig(int|string $peerId): string
+    public function generateClientConfig(int|string $peerId, string $mode = 'wan'): string
     {
         $peer = $this->db->queryOne(
             "SELECT p.*, z.subnet as zone_subnet FROM peers p JOIN zones z ON z.id = p.zone_id WHERE p.id = ?",
@@ -53,8 +53,10 @@ class WireGuardService
         if (!$peer) throw new \RuntimeException("Peer not found");
 
         $serverPublicKey = $this->db->queryOne("SELECT value FROM settings WHERE key = 'server_public_key'")['value'] ?? '';
-        $serverIp        = $this->db->queryOne("SELECT value FROM settings WHERE key = 'server_public_ip'")['value'] ?? '';
+        $serverWanIp     = $this->db->queryOne("SELECT value FROM settings WHERE key = 'server_public_ip'")['value'] ?? '';
+        $serverLanIp     = $this->db->queryOne("SELECT value FROM settings WHERE key = 'server_lan_ip'")['value'] ?? '';
         $wgPort          = $this->db->queryOne("SELECT value FROM settings WHERE key = 'wg_port'")['value'] ?? '51820';
+        $serverIp        = ($mode === 'lan' && $serverLanIp) ? $serverLanIp : $serverWanIp;
 
         [$network, $prefix] = explode('/', $peer['zone_subnet']);
         $clientAddress = $peer['vpn_ip'] . '/' . $prefix;
