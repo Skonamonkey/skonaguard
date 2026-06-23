@@ -328,7 +328,7 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script src="/assets/qrcode.min.js"></script>
 <script>
 let currentTokenPeerId = null;
 
@@ -378,9 +378,13 @@ function showQr(peerId, peerName) {
         .then(r => r.json())
         .then(data => {
             const conf = atob(data.config_b64);
-            document.getElementById('qr-container').innerHTML = '<canvas id="qr-canvas"></canvas>';
-            QRCode.toCanvas(document.getElementById('qr-canvas'), conf, { width: 280, margin: 2 }, function(err) {
-                if (err) document.getElementById('qr-container').innerHTML = '<span style="color:var(--color-danger)">QR generation failed</span>';
+            document.getElementById('qr-container').innerHTML = '<div id="qr-canvas"></div>';
+            new QRCode(document.getElementById('qr-canvas'), {
+                text: conf,
+                width: 280,
+                height: 280,
+                colorDark: '#000000',
+                colorLight: '#ffffff',
             });
         })
         .catch(() => {
