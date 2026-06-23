@@ -161,7 +161,12 @@ class WireGuardService
         $this->setupAclChain();
         shell_exec('iptables -F SKONAGUARD 2>/dev/null');
 
-        $serverWgIp = trim((string) shell_exec("ip -4 addr show wg0 2>/dev/null | grep -oP '(?<=inet )[\d.]+' | head -1"));
+        shell_exec('iptables -A SKONAGUARD -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT 2>/dev/null');
+
+        $serverWgIp = trim((string) shell_exec("ip -4 addr show wg0 2>/dev/null | grep -E 'inet ' | awk '{print \$2}' | cut -d/ -f1 | head -1"));
+        if (!$serverWgIp) {
+            $serverWgIp = $_ENV['WG_SUBNET_HUB'] ?? '';
+        }
         if ($serverWgIp) {
             shell_exec('iptables -A SKONAGUARD -d ' . escapeshellarg($serverWgIp) . ' -j ACCEPT 2>/dev/null');
             shell_exec('iptables -A SKONAGUARD -s ' . escapeshellarg($serverWgIp) . ' -j ACCEPT 2>/dev/null');
