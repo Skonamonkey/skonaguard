@@ -231,4 +231,70 @@ class PeersController
         $response->getBody()->write((string) json_encode(['config_b64' => $encoded]));
         return $response->withHeader('Content-Type', 'application/json');
     }
+
+    public function checkSubnet(Request $request, Response $response): Response
+    {
+        $params    = $request->getQueryParams();
+        $subnets   = array_filter(array_map('trim', explode(',', $params['subnets'] ?? '')));
+        $excludeId = isset($params['exclude_id']) && $params['exclude_id'] !== ''
+            ? (int) $params['exclude_id']
+            : null;
+
+        if (empty($subnets)) {
+            $response->getBody()->write(json_encode(['conflicts' => []]));
+            return $response->withHeader('Content-Type', 'application/json');
+        }
+
+        $sql  = "SELECT id, name, vpn_ip, gateway_subnet FROM peers WHERE is_gateway = 1 AND enabled = 1 AND gateway_subnet IS NOT NULL";
+        $args = [];
+        if ($excludeId !== null) {
+            $sql   .= " AND id != ?";
+            $args[] = $excludeId;
+        }
+        $existingPeers = $this->db->query($sql, $args);
+
+        $conflicts = [];
+        foreach ($existingPeers as $peer) {
+            $existing = array_filter(array_map('trim', explode(',', $peer['gateway_subnet'])));
+            foreach ($subnets as $newSubnet) {
+                foreach ($existing as $existingSubnet) {
+                    if ($this->subnetsOverlap($newSubnet, $existingSubnet)) {
+                        $conflicts[] = [
+                            'peer_name'          => $peer['name'],
+                            'peer_vpn_ip'        => $peer['vpn_ip'],
+                            'new_subnet'         => $newSubnet,
+                            'conflicting_subnet' => $existingSubnet,
+                        ];
+                        break;
+                    }
+                }
+            }
+        }
+
+        $response->getBody()->write(json_encode(['conflicts' => $conflicts]));
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    private function subnetsOverlap(string $subnetA, string $subnetB): bool
+    {
+        $subnetA = trim($subnetA);
+        $subnetB = trim($subnetB);
+
+        if (!str_contains($subnetA, '/') || !str_contains($subnetB, '/')) {
+            return false;
+        }
+
+        [$netA, $prefA] = explode('/', $subnetA, 2);
+        [$netB, $prefB] = explode('/', $subnetB, 2);
+
+        $ipA = ip2long($netA);
+        $ipB = ip2long($netB);
+
+        if ($ipA === false || $ipB === false) return false;
+
+        $minPrefix = min((int) $prefA, (int) $prefB);
+        $shift     = 32 - $minPrefix;
+
+        return (($ipA >> $shift) === ($ipB >> $shift));
+    }
 }

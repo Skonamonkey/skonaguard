@@ -210,6 +210,7 @@
 
                 <!-- Zone hidden field used when profile supplies zone -->
                 <input type="hidden" name="zone_id" id="add-zone-hidden" value="">
+                <input type="hidden" name="force_gateway" id="add-force-gateway" value="0">
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-ghost" onclick="closeModal('modal-add')">Cancel</button>
@@ -286,6 +287,7 @@
                     <input type="checkbox" id="edit-enabled" name="enabled" value="1">
                     <label for="edit-enabled">Peer enabled</label>
                 </div>
+                <input type="hidden" name="force_gateway" id="edit-force-gateway" value="0">
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-ghost" onclick="closeModal('modal-edit')">Cancel</button>
@@ -360,6 +362,38 @@
         </div>
         <div class="modal-footer">
             <button type="button" class="btn btn-ghost" onclick="closeModal('modal-token')">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- Gateway Subnet Conflict Warning Modal -->
+<div class="modal-backdrop" id="modal-subnet-conflict">
+    <div class="modal" style="max-width:520px">
+        <div class="modal-header" style="border-bottom-color:var(--color-warning)">
+            <span class="modal-title" style="color:var(--color-warning)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;vertical-align:-3px;margin-right:6px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                Subnet Conflict Detected
+            </span>
+            <button class="modal-close" onclick="closeModal('modal-subnet-conflict')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <p style="color:var(--text-secondary); margin-bottom:14px">
+                The subnet(s) you're advertising overlap with an existing gateway peer:
+            </p>
+            <div id="conflict-list" style="margin-bottom:16px; font-size:var(--font-sm)"></div>
+            <div style="background:var(--surface-input); border:1px solid var(--color-warning); border-radius:var(--radius-sm); padding:12px 14px; font-size:var(--font-sm); color:var(--text-secondary)">
+                <strong style="color:var(--color-warning)">What this means:</strong>
+                WireGuard can only route a subnet to <em>one</em> peer at a time — the last entry in the config wins.
+                If both peers are on <strong>different physical networks</strong>, only one will be reachable via that subnet.
+                This is fine for <strong>redundancy</strong> (same physical network, two gateway machines), but will cause
+                silent routing failures or accidental cross-site exposure otherwise.
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-ghost" onclick="closeModal('modal-subnet-conflict')">Cancel</button>
+            <button type="button" class="btn" id="conflict-save-anyway" onclick="saveAnywayFromConflict()" style="background:var(--color-warning); color:#000; border-color:var(--color-warning)">Save Anyway</button>
         </div>
     </div>
 </div>
@@ -559,6 +593,79 @@ function copyTokenUrl() {
     const text = document.getElementById('token-url').textContent;
     navigator.clipboard.writeText(text).catch(() => {});
 }
+
+let _pendingConflictForm = null;
+
+async function checkGatewayConflicts(form, subnetInput, forceInput, excludeId) {
+    const subnet = subnetInput ? subnetInput.value.trim() : '';
+    if (!subnet) return true;
+
+    if (forceInput && forceInput.value === '1') return true;
+
+    try {
+        const url = '/peers/check-subnet?subnets=' + encodeURIComponent(subnet)
+            + (excludeId ? '&exclude_id=' + excludeId : '');
+        const resp = await fetch(url);
+        const data = await resp.json();
+
+        if (!data.conflicts || data.conflicts.length === 0) return true;
+
+        const list = document.getElementById('conflict-list');
+        list.innerHTML = data.conflicts.map(c =>
+            `<div style="padding:8px 12px; margin-bottom:6px; background:var(--surface-input); border-left:3px solid var(--color-warning); border-radius:var(--radius-sm)">
+                <strong>${c.peer_name}</strong> <span style="color:var(--text-muted)">(${c.peer_vpn_ip})</span>
+                already advertises <code>${c.conflicting_subnet}</code>
+                which overlaps with <code>${c.new_subnet}</code>
+            </div>`
+        ).join('');
+
+        _pendingConflictForm = { form, forceInput };
+        openModal('modal-subnet-conflict');
+        return false;
+    } catch {
+        return true;
+    }
+}
+
+function saveAnywayFromConflict() {
+    closeModal('modal-subnet-conflict');
+    if (_pendingConflictForm) {
+        _pendingConflictForm.forceInput.value = '1';
+        _pendingConflictForm.form.submit();
+        _pendingConflictForm = null;
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const addForm = document.querySelector('#modal-add form');
+    if (addForm) {
+        addForm.addEventListener('submit', async function(e) {
+            const gwCb = document.getElementById('add-is-gateway');
+            if (!gwCb || !gwCb.checked) return;
+            const forceInput = document.getElementById('add-force-gateway');
+            if (forceInput && forceInput.value === '1') return;
+            e.preventDefault();
+            const subnetInput = addForm.querySelector('[name="gateway_subnet"]');
+            const ok = await checkGatewayConflicts(addForm, subnetInput, forceInput, null);
+            if (ok) addForm.submit();
+        });
+    }
+
+    const editForm = document.getElementById('form-edit');
+    if (editForm) {
+        editForm.addEventListener('submit', async function(e) {
+            const gwCb = document.getElementById('edit-is-gateway');
+            if (!gwCb || !gwCb.checked) return;
+            const forceInput = document.getElementById('edit-force-gateway');
+            if (forceInput && forceInput.value === '1') return;
+            e.preventDefault();
+            const subnetInput = editForm.querySelector('[name="gateway_subnet"]');
+            const peerId = editForm.action.match(/\/peers\/(\d+)/)?.[1] ?? null;
+            const ok = await checkGatewayConflicts(editForm, subnetInput, forceInput, peerId);
+            if (ok) editForm.submit();
+        });
+    }
+});
 
 setTimeout(() => {
     const el = document.getElementById('flash-msg');

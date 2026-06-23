@@ -45,6 +45,7 @@ $app->group('', function (\Slim\Routing\RouteCollectorProxy $group) {
     $group->post('/zones/{id:[0-9]+}/delete', [ZonesController::class, 'destroy']);
 
     $group->get('/peers', [PeersController::class, 'index']);
+    $group->get('/peers/check-subnet', [PeersController::class, 'checkSubnet']);
     $group->post('/peers', [PeersController::class, 'store']);
     $group->post('/peers/{id:[0-9]+}', [PeersController::class, 'update']);
     $group->post('/peers/{id:[0-9]+}/delete', [PeersController::class, 'destroy']);
