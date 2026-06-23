@@ -391,7 +391,7 @@ function showQr(peerId, peerName) {
             });
         })
         .catch(err => {
-            document.getElementById('qr-container').innerHTML = '<span style="color:var(--color-danger); font-size:0.75rem">' + (err && err.message ? err.message : String(err)) + '</span>';
+            document.getElementById('qr-container').innerHTML = '<span style="color:var(--color-danger)">Failed to generate QR code</span>';
         });
 }
 
