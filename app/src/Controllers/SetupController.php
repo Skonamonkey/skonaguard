@@ -19,13 +19,13 @@ class SetupController
         private Database $db
     ) {}
 
-    public function show(Request $request, Response $response, array $args): Response
+    public function show(Request $request, Response $response, ?string $step = null): Response
     {
         if (($_ENV['SETUP_COMPLETE'] ?? 'false') === 'true') {
             return $response->withHeader('Location', '/dashboard')->withStatus(302);
         }
 
-        $step = (int) ($args['step'] ?? 1);
+        $step = (int) ($step ?? 1);
         return $this->view->render($response, 'setup/wizard.twig', [
             'step'        => $step,
             'total_steps' => self::TOTAL_STEPS,
@@ -35,13 +35,13 @@ class SetupController
         ]);
     }
 
-    public function handle(Request $request, Response $response, array $args): Response
+    public function handle(Request $request, Response $response, ?string $step = null): Response
     {
         if (($_ENV['SETUP_COMPLETE'] ?? 'false') === 'true') {
             return $response->withHeader('Location', '/dashboard')->withStatus(302);
         }
 
-        $step = (int) ($args['step'] ?? 1);
+        $step = (int) ($step ?? 1);
         $body = (array) $request->getParsedBody();
 
         unset($_SESSION['setup_error']);
