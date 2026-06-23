@@ -19,14 +19,14 @@ class SetupController
         private Database $db
     ) {}
 
-    public function show(Request $req, Response $res, array $args): Response
+    public function show(Request $request, Response $response, array $args): Response
     {
         if (($_ENV['SETUP_COMPLETE'] ?? 'false') === 'true') {
-            return $res->withHeader('Location', '/dashboard')->withStatus(302);
+            return $response->withHeader('Location', '/dashboard')->withStatus(302);
         }
 
         $step = (int) ($args['step'] ?? 1);
-        return $this->view->render($res, 'setup/wizard.twig', [
+        return $this->view->render($response, 'setup/wizard.twig', [
             'step'        => $step,
             'total_steps' => self::TOTAL_STEPS,
             'error'       => $_SESSION['setup_error'] ?? null,
@@ -35,103 +35,103 @@ class SetupController
         ]);
     }
 
-    public function handle(Request $req, Response $res, array $args): Response
+    public function handle(Request $request, Response $response, array $args): Response
     {
         if (($_ENV['SETUP_COMPLETE'] ?? 'false') === 'true') {
-            return $res->withHeader('Location', '/dashboard')->withStatus(302);
+            return $response->withHeader('Location', '/dashboard')->withStatus(302);
         }
 
         $step = (int) ($args['step'] ?? 1);
-        $body = (array) $req->getParsedBody();
+        $body = (array) $request->getParsedBody();
 
         unset($_SESSION['setup_error']);
 
         return match ($step) {
-            1 => $this->handleAccount($res, $body),
-            2 => $this->handleServer($res, $body),
-            3 => $this->handleFirstZone($res, $body),
-            4 => $this->handleComplete($res),
-            default => $res->withHeader('Location', '/setup/1')->withStatus(302),
+            1 => $this->handleAccount($response, $body),
+            2 => $this->handleServer($response, $body),
+            3 => $this->handleFirstZone($response, $body),
+            4 => $this->handleComplete($response),
+            default => $response->withHeader('Location', '/setup/1')->withStatus(302),
         };
     }
 
-    private function handleAccount(Response $res, array $body): Response
+    private function handleAccount(Response $response, array $body): Response
     {
         $username = trim($body['username'] ?? '');
         $password = $body['password'] ?? '';
         $confirm  = $body['confirm'] ?? '';
 
         if (strlen($username) < 3) {
-            return $this->error($res, 1, 'Username must be at least 3 characters.');
+            return $this->error($response, 1, 'Username must be at least 3 characters.');
         }
         if (in_array(strtolower($username), self::BLOCKED_USERNAMES, true)) {
-            return $this->error($res, 1, "\"$username\" is not allowed as a username. Please choose something unique.");
+            return $this->error($response, 1, "\"$username\" is not allowed as a username. Please choose something unique.");
         }
         if (!preg_match('/^[a-zA-Z0-9_\-\.]+$/', $username)) {
-            return $this->error($res, 1, 'Username may only contain letters, numbers, underscores, hyphens and dots.');
+            return $this->error($response, 1, 'Username may only contain letters, numbers, underscores, hyphens and dots.');
         }
         if (strlen($password) < 10) {
-            return $this->error($res, 1, 'Password must be at least 10 characters.');
+            return $this->error($response, 1, 'Password must be at least 10 characters.');
         }
         if ($password !== $confirm) {
-            return $this->error($res, 1, 'Passwords do not match.');
+            return $this->error($response, 1, 'Passwords do not match.');
         }
 
         $_SESSION['setup_data']['username'] = $username;
         $_SESSION['setup_data']['password'] = $password;
 
-        return $res->withHeader('Location', '/setup/2')->withStatus(302);
+        return $response->withHeader('Location', '/setup/2')->withStatus(302);
     }
 
-    private function handleServer(Response $res, array $body): Response
+    private function handleServer(Response $response, array $body): Response
     {
         $ip     = trim($body['server_ip'] ?? '');
         $port   = (int) ($body['wg_port'] ?? 51820);
         $subnet = trim($body['wg_subnet'] ?? '172.16.0.0/16');
 
         if (!filter_var($ip, FILTER_VALIDATE_IP)) {
-            return $this->error($res, 2, 'Invalid server IP address.');
+            return $this->error($response, 2, 'Invalid server IP address.');
         }
         if ($port < 1 || $port > 65535) {
-            return $this->error($res, 2, 'Port must be between 1 and 65535.');
+            return $this->error($response, 2, 'Port must be between 1 and 65535.');
         }
         if (!$this->isValidCidr($subnet)) {
-            return $this->error($res, 2, 'Invalid subnet. Use CIDR format, e.g. 172.16.0.0/16');
+            return $this->error($response, 2, 'Invalid subnet. Use CIDR format, e.g. 172.16.0.0/16');
         }
 
         $_SESSION['setup_data']['server_ip'] = $ip;
         $_SESSION['setup_data']['wg_port']   = $port;
         $_SESSION['setup_data']['wg_subnet']  = $subnet;
 
-        return $res->withHeader('Location', '/setup/3')->withStatus(302);
+        return $response->withHeader('Location', '/setup/3')->withStatus(302);
     }
 
-    private function handleFirstZone(Response $res, array $body): Response
+    private function handleFirstZone(Response $response, array $body): Response
     {
         $name        = trim($body['zone_name'] ?? '');
         $subnet      = trim($body['zone_subnet'] ?? '');
         $description = trim($body['zone_description'] ?? '');
 
         if (strlen($name) < 2) {
-            return $this->error($res, 3, 'Zone name must be at least 2 characters.');
+            return $this->error($response, 3, 'Zone name must be at least 2 characters.');
         }
         if (!$this->isValidCidr($subnet)) {
-            return $this->error($res, 3, 'Invalid subnet. Use CIDR format, e.g. 172.16.1.0/24');
+            return $this->error($response, 3, 'Invalid subnet. Use CIDR format, e.g. 172.16.1.0/24');
         }
 
         $_SESSION['setup_data']['zone_name']        = $name;
         $_SESSION['setup_data']['zone_subnet']       = $subnet;
         $_SESSION['setup_data']['zone_description']  = $description;
 
-        return $res->withHeader('Location', '/setup/4')->withStatus(302);
+        return $response->withHeader('Location', '/setup/4')->withStatus(302);
     }
 
-    private function handleComplete(Response $res): Response
+    private function handleComplete(Response $response): Response
     {
         $data = $_SESSION['setup_data'] ?? [];
 
         if (empty($data['username']) || empty($data['password'])) {
-            return $res->withHeader('Location', '/setup/1')->withStatus(302);
+            return $response->withHeader('Location', '/setup/1')->withStatus(302);
         }
 
         $this->db->execute(
@@ -171,13 +171,13 @@ class SetupController
         $_SESSION['user_id']    = $this->db->queryOne("SELECT id FROM users WHERE username = ?", [$data['username']])['id'];
         $_SESSION['username']   = $data['username'];
 
-        return $res->withHeader('Location', '/dashboard')->withStatus(302);
+        return $response->withHeader('Location', '/dashboard')->withStatus(302);
     }
 
-    private function error(Response $res, int $step, string $message): Response
+    private function error(Response $response, int $step, string $message): Response
     {
         $_SESSION['setup_error'] = $message;
-        return $res->withHeader('Location', "/setup/$step")->withStatus(302);
+        return $response->withHeader('Location', "/setup/$step")->withStatus(302);
     }
 
     private function detectPublicIp(): string

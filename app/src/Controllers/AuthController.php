@@ -16,20 +16,20 @@ class AuthController
         private Database $db
     ) {}
 
-    public function showLogin(Request $req, Response $res): Response
+    public function showLogin(Request $request, Response $response): Response
     {
         if (!empty($_SESSION['user_id'])) {
-            return $res->withHeader('Location', '/dashboard')->withStatus(302);
+            return $response->withHeader('Location', '/dashboard')->withStatus(302);
         }
 
-        return $this->view->render($res, 'auth/login.twig', [
+        return $this->view->render($response, 'auth/login.twig', [
             'error' => $_SESSION['login_error'] ?? null,
         ]);
     }
 
-    public function login(Request $req, Response $res): Response
+    public function login(Request $request, Response $response): Response
     {
-        $body     = (array) $req->getParsedBody();
+        $body     = (array) $request->getParsedBody();
         $username = trim($body['username'] ?? '');
         $password = $body['password'] ?? '';
 
@@ -40,19 +40,19 @@ class AuthController
 
         if (!$user || !password_verify($password, $user['password'])) {
             $_SESSION['login_error'] = 'Invalid username or password.';
-            return $res->withHeader('Location', '/login')->withStatus(302);
+            return $response->withHeader('Location', '/login')->withStatus(302);
         }
 
         unset($_SESSION['login_error']);
         $_SESSION['user_id']  = $user['id'];
         $_SESSION['username'] = $user['username'];
 
-        return $res->withHeader('Location', '/dashboard')->withStatus(302);
+        return $response->withHeader('Location', '/dashboard')->withStatus(302);
     }
 
-    public function logout(Request $req, Response $res): Response
+    public function logout(Request $request, Response $response): Response
     {
         session_destroy();
-        return $res->withHeader('Location', '/login')->withStatus(302);
+        return $response->withHeader('Location', '/login')->withStatus(302);
     }
 }

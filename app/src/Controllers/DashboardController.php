@@ -16,7 +16,7 @@ class DashboardController
         private Database $db
     ) {}
 
-    public function index(Request $req, Response $res): Response
+    public function index(Request $request, Response $response): Response
     {
         $totalPeers     = $this->db->queryOne("SELECT COUNT(*) as c FROM peers")['c'] ?? 0;
         $totalZones     = $this->db->queryOne("SELECT COUNT(*) as c FROM zones")['c'] ?? 0;
@@ -29,7 +29,7 @@ class DashboardController
              ORDER BY p.created_at DESC LIMIT 5"
         );
 
-        return $this->view->render($res, 'dashboard/index.twig', [
+        return $this->view->render($response, 'dashboard/index.twig', [
             'total_peers'    => $totalPeers,
             'total_zones'    => $totalZones,
             'total_profiles' => $totalProfiles,
