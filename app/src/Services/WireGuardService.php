@@ -160,7 +160,7 @@ class WireGuardService
         foreach ($rules as $rule) {
             $src = $rule['src_ip_override'] ?: ($rule['src_subnet'] ?? null);
             $dst = $rule['dst_ip_override'] ?: ($rule['dst_subnet'] ?? null);
-            $this->applyAclRule($rule['rule_type'], $rule['action'], $src, $dst);
+            $this->applyAclRule($rule['rule_type'], $src, $dst);
         }
 
         shell_exec('iptables -A SKONAGUARD -j RETURN 2>/dev/null');
@@ -182,33 +182,37 @@ class WireGuardService
         shell_exec('iptables -X SKONAGUARD 2>/dev/null');
     }
 
-    private function applyAclRule(string $type, string $action, ?string $src, ?string $dst): void
+    private function applyAclRule(string $type, ?string $src, ?string $dst): void
     {
-        $s    = $src ? "-s " . escapeshellarg($src) : '';
-        $d    = $dst ? "-d " . escapeshellarg($dst) : '';
-        $base = trim("iptables -A SKONAGUARD {$s} {$d}");
+        $s   = $src ? '-s ' . escapeshellarg($src) : '';
+        $d   = $dst ? '-d ' . escapeshellarg($dst) : '';
+        $rs  = $dst ? '-s ' . escapeshellarg($dst) : '';
+        $rd  = $src ? '-d ' . escapeshellarg($src) : '';
+        $fwd = trim("iptables -A SKONAGUARD {$s} {$d}");
+        $rev = trim("iptables -A SKONAGUARD {$rs} {$rd}");
 
         switch ($type) {
             case 'full':
-                shell_exec("{$base} -j {$action} 2>/dev/null");
+                shell_exec("{$fwd} -j ACCEPT 2>/dev/null");
+                shell_exec("{$rev} -j ACCEPT 2>/dev/null");
                 break;
 
             case 'established':
-                shell_exec("{$base} -j ACCEPT 2>/dev/null");
-                if ($src && $dst) {
-                    $rev = trim("iptables -A SKONAGUARD -s " . escapeshellarg($dst) . " -d " . escapeshellarg($src));
-                    shell_exec("{$rev} -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT 2>/dev/null");
-                    shell_exec("{$rev} -m conntrack --ctstate NEW -j DROP 2>/dev/null");
-                }
+                shell_exec("{$fwd} -j ACCEPT 2>/dev/null");
+                shell_exec("{$rev} -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT 2>/dev/null");
+                shell_exec("{$rev} -j DROP 2>/dev/null");
                 break;
 
             case 'icmp_only':
-                shell_exec("{$base} -p icmp -j ACCEPT 2>/dev/null");
-                shell_exec("{$base} -j DROP 2>/dev/null");
+                shell_exec("{$fwd} -p icmp -j ACCEPT 2>/dev/null");
+                shell_exec("{$rev} -p icmp -j ACCEPT 2>/dev/null");
+                shell_exec("{$fwd} -j DROP 2>/dev/null");
+                shell_exec("{$rev} -j DROP 2>/dev/null");
                 break;
 
             case 'deny':
-                shell_exec("{$base} -j DROP 2>/dev/null");
+                shell_exec("{$fwd} -j DROP 2>/dev/null");
+                shell_exec("{$rev} -j DROP 2>/dev/null");
                 break;
         }
     }

@@ -42,8 +42,7 @@
                     <th>Rule Name</th>
                     <th>Source</th>
                     <th>Destination</th>
-                    <th>Type</th>
-                    <th>Action</th>
+                    <th>Access</th>
                     <th></th>
                 </tr>
             </thead>
@@ -73,21 +72,16 @@
                         {% endif %}
                     </td>
                     <td>
-                        <span class="badge badge-offline">{{ rule_types[rule.rule_type] ?? rule.rule_type }}</span>
-                    </td>
-                    <td>
-                        {% if rule.action == 'ACCEPT' %}
-                            <span class="badge badge-active">
-                                <span class="dot dot-green"></span> Accept
-                            </span>
-                        {% elseif rule.action == 'DROP' %}
-                            <span class="badge badge-inactive">
-                                <span class="dot dot-grey"></span> Drop
-                            </span>
+                        {% if rule.rule_type == 'full' %}
+                            <span class="badge badge-active"><span class="dot dot-green"></span> Full Access</span>
+                        {% elseif rule.rule_type == 'established' %}
+                            <span class="badge badge-info">Inbound Only</span>
+                        {% elseif rule.rule_type == 'icmp_only' %}
+                            <span class="badge badge-offline">ICMP / Ping Only</span>
+                        {% elseif rule.rule_type == 'deny' %}
+                            <span class="badge badge-inactive"><span class="dot dot-grey"></span> Deny All</span>
                         {% else %}
-                            <span class="badge" style="background:var(--color-warning-muted);color:var(--color-warning)">
-                                Reject
-                            </span>
+                            <span class="badge">{{ rule.rule_type }}</span>
                         {% endif %}
                     </td>
                     <td style="text-align:right; white-space:nowrap">
@@ -103,7 +97,7 @@
                 </tr>
             {% else %}
                 <tr>
-                    <td colspan="7" style="text-align:center; color:var(--text-muted); padding:40px 0;">
+                    <td colspan="6" style="text-align:center; color:var(--text-muted); padding:40px 0;">
                         No rules yet. Without rules, all VPN traffic between zones is permitted.
                     </td>
                 </tr>
@@ -169,23 +163,14 @@
                     </div>
                 </div>
 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Rule Type</label>
-                        <select name="rule_type">
-                            {% for key, label in rule_types %}
-                            <option value="{{ key }}">{{ label }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Action</label>
-                        <select name="action">
-                            <option value="ACCEPT">Accept</option>
-                            <option value="DROP">Drop (silent)</option>
-                            <option value="REJECT">Reject (with error)</option>
-                        </select>
-                    </div>
+                <div class="form-group">
+                    <label>Access Rule</label>
+                    <select name="rule_type">
+                        <option value="full">Full Access — both sides can communicate freely</option>
+                        <option value="established">Inbound Only — source can initiate; destination can only reply</option>
+                        <option value="icmp_only">ICMP / Ping Only — ping between zones, all other traffic blocked</option>
+                        <option value="deny">Deny All — block all traffic in both directions</option>
+                    </select>
                 </div>
             </div>
             <div class="modal-footer">
@@ -252,23 +237,14 @@
                     </div>
                 </div>
 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Rule Type</label>
-                        <select id="edit-rule-type" name="rule_type">
-                            {% for key, label in rule_types %}
-                            <option value="{{ key }}">{{ label }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Action</label>
-                        <select id="edit-action" name="action">
-                            <option value="ACCEPT">Accept</option>
-                            <option value="DROP">Drop (silent)</option>
-                            <option value="REJECT">Reject (with error)</option>
-                        </select>
-                    </div>
+                <div class="form-group">
+                    <label>Access Rule</label>
+                    <select id="edit-rule-type" name="rule_type">
+                        <option value="full">Full Access — both sides can communicate freely</option>
+                        <option value="established">Inbound Only — source can initiate; destination can only reply</option>
+                        <option value="icmp_only">ICMP / Ping Only — ping between zones, all other traffic blocked</option>
+                        <option value="deny">Deny All — block all traffic in both directions</option>
+                    </select>
                 </div>
             </div>
             <div class="modal-footer">
@@ -319,7 +295,6 @@ function openEditModal(rule) {
     document.getElementById('edit-src-ip').value   = rule.src_ip_override ?? '';
     document.getElementById('edit-dst-ip').value   = rule.dst_ip_override ?? '';
     document.getElementById('edit-rule-type').value = rule.rule_type;
-    document.getElementById('edit-action').value   = rule.action;
     document.getElementById('form-edit').action    = '/acls/' + rule.id;
     openModal('modal-edit');
 }

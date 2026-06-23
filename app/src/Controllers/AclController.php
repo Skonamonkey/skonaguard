@@ -14,7 +14,7 @@ class AclController
 {
     private const RULE_TYPES = [
         'full'        => 'Full Access',
-        'established' => 'Inbound Only (established)',
+        'established' => 'Inbound Only',
         'icmp_only'   => 'ICMP / Ping Only',
         'deny'        => 'Deny All',
     ];
@@ -55,8 +55,8 @@ class AclController
         $dstZoneId  = ($body['dst_zone_id'] ?? '') !== '' ? (int) $body['dst_zone_id'] : null;
         $srcIp      = trim($body['src_ip_override'] ?? '');
         $dstIp      = trim($body['dst_ip_override'] ?? '');
-        $action     = in_array($body['action'] ?? '', ['ACCEPT','DROP','REJECT']) ? $body['action'] : 'ACCEPT';
         $ruleType   = array_key_exists($body['rule_type'] ?? '', self::RULE_TYPES) ? $body['rule_type'] : 'full';
+        $action     = $ruleType === 'deny' ? 'DROP' : 'ACCEPT';
         $priority   = max(1, min(999, (int) ($body['priority'] ?? 100)));
 
         if (!$name) {
@@ -82,8 +82,8 @@ class AclController
         $dstZoneId  = ($body['dst_zone_id'] ?? '') !== '' ? (int) $body['dst_zone_id'] : null;
         $srcIp      = trim($body['src_ip_override'] ?? '');
         $dstIp      = trim($body['dst_ip_override'] ?? '');
-        $action     = in_array($body['action'] ?? '', ['ACCEPT','DROP','REJECT']) ? $body['action'] : 'ACCEPT';
         $ruleType   = array_key_exists($body['rule_type'] ?? '', self::RULE_TYPES) ? $body['rule_type'] : 'full';
+        $action     = $ruleType === 'deny' ? 'DROP' : 'ACCEPT';
         $priority   = max(1, min(999, (int) ($body['priority'] ?? 100)));
 
         if (!$name) {
