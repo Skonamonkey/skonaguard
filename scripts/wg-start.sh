@@ -11,6 +11,8 @@ else
     wg-quick up /etc/wireguard/wg0.conf
 fi
 
+php /app/scripts/sync_acl.php 2>/dev/null || true
+
 while ip link show wg0 > /dev/null 2>&1; do
     sleep 10
 done
