@@ -1,6 +1,8 @@
 FROM golang:1.23-alpine AS wggo-builder
 RUN apk add --no-cache git
-RUN go install golang.zx2c4.com/wireguard-go@latest
+RUN git clone https://github.com/WireGuard/wireguard-go.git /tmp/wireguard-go \
+    && cd /tmp/wireguard-go \
+    && go build -o /usr/local/bin/wireguard-go .
 
 FROM php:8.2-fpm-alpine
 
