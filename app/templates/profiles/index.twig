@@ -1,0 +1,245 @@
+{% extends 'partials/layout.twig' %}
+
+{% block title %}Profiles — SkonaGuard{% endblock %}
+{% block page_title %}Profiles{% endblock %}
+
+{% block content %}
+
+{% if session.flash_error is defined and session.flash_error %}
+<div class="alert alert-danger" id="flash-msg">{{ session.flash_error }}</div>
+{% endif %}
+{% if session.flash_success is defined and session.flash_success %}
+<div class="alert alert-success" id="flash-msg">{{ session.flash_success }}</div>
+{% endif %}
+
+<div class="card">
+    <div class="card-header">
+        <div class="card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            Access Profiles
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="openModal('modal-add')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add Profile
+        </button>
+    </div>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Description</th>
+                    <th>Zone Access</th>
+                    <th>Peers</th>
+                    <th>Created</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for profile in profiles %}
+                <tr>
+                    <td><strong>{{ profile.name }}</strong></td>
+                    <td style="color:var(--text-secondary)">{{ profile.description ?? '—' }}</td>
+                    <td>
+                        {% if profileZones[profile.id] is defined and profileZones[profile.id]|length > 0 %}
+                            {% for pz in profileZones[profile.id] %}
+                                <span class="badge {% if pz.access_type == 'full' %}badge-active{% else %}badge-info{% endif %}" style="margin:2px">
+                                    {{ pz.name }}{% if pz.access_type != 'full' %} ({{ pz.access_type }}){% endif %}
+                                </span>
+                            {% endfor %}
+                        {% else %}
+                            <span style="color:var(--text-muted)">No zones</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge {% if profile.peer_count > 0 %}badge-active{% else %}badge-offline{% endif %}">
+                            {{ profile.peer_count }} peer{{ profile.peer_count != 1 ? 's' : '' }}
+                        </span>
+                    </td>
+                    <td style="color:var(--text-muted)">{{ profile.created_at|slice(0,10) }}</td>
+                    <td style="text-align:right; white-space:nowrap">
+                        <button class="btn-icon" title="Edit"
+                            onclick='openEditModal({{ profile.id }}, {{ profile.name|json_encode }}, {{ (profile.description ?? "")|json_encode }}, {{ profileZones[profile.id]|json_encode }})'>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        </button>
+                        <button class="btn-icon danger" title="Delete"
+                            onclick="confirmDelete({{ profile.id }}, '{{ profile.name|e('js') }}')">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                        </button>
+                    </td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="6" style="text-align:center; color:var(--text-muted); padding:40px 0;">
+                        No profiles yet. Profiles let you assign zone access to groups of peers.
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add Profile Modal -->
+<div class="modal-backdrop" id="modal-add">
+    <div class="modal" style="max-width:560px">
+        <div class="modal-header">
+            <span class="modal-title">Add Profile</span>
+            <button class="modal-close" onclick="closeModal('modal-add')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>
+        <form method="POST" action="/profiles">
+            <div class="modal-body">
+                <div class="form-row" style="margin-bottom:16px">
+                    <div class="form-group">
+                        <label>Profile Name</label>
+                        <input type="text" name="name" placeholder="e.g. Office Staff" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Description <span style="color:var(--text-muted)">(optional)</span></label>
+                        <input type="text" name="description" placeholder="Short description">
+                    </div>
+                </div>
+                <label style="display:block; margin-bottom:8px; font-size:var(--font-sm); font-weight:600; color:var(--text-secondary)">Zone Access</label>
+                {% for zone in zones %}
+                <div style="display:flex; align-items:center; gap:12px; padding:8px 0; border-bottom:1px solid var(--border-subtle)">
+                    <input type="checkbox" name="zone_ids[]" value="{{ zone.id }}" id="add-zone-{{ zone.id }}"
+                        onchange="toggleAccessType(this, 'add-at-{{ zone.id }}')">
+                    <label for="add-zone-{{ zone.id }}" style="flex:1; margin:0; cursor:pointer; font-weight:500">
+                        {{ zone.name }} <small style="color:var(--text-muted)">({{ zone.subnet }})</small>
+                    </label>
+                    <select name="access_types[{{ zone.id }}]" id="add-at-{{ zone.id }}" disabled style="width:130px">
+                        <option value="full">Full Access</option>
+                        <option value="established">Inbound Only</option>
+                        <option value="readonly">Read Only</option>
+                    </select>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" onclick="closeModal('modal-add')">Cancel</button>
+                <button type="submit" class="btn btn-primary">Create Profile</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Profile Modal -->
+<div class="modal-backdrop" id="modal-edit">
+    <div class="modal" style="max-width:560px">
+        <div class="modal-header">
+            <span class="modal-title">Edit Profile</span>
+            <button class="modal-close" onclick="closeModal('modal-edit')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>
+        <form method="POST" action="" id="form-edit">
+            <div class="modal-body">
+                <div class="form-row" style="margin-bottom:16px">
+                    <div class="form-group">
+                        <label>Profile Name</label>
+                        <input type="text" id="edit-name" name="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <input type="text" id="edit-desc" name="description">
+                    </div>
+                </div>
+                <label style="display:block; margin-bottom:8px; font-size:var(--font-sm); font-weight:600; color:var(--text-secondary)">Zone Access</label>
+                {% for zone in zones %}
+                <div style="display:flex; align-items:center; gap:12px; padding:8px 0; border-bottom:1px solid var(--border-subtle)">
+                    <input type="checkbox" name="zone_ids[]" value="{{ zone.id }}" id="edit-zone-{{ zone.id }}"
+                        onchange="toggleAccessType(this, 'edit-at-{{ zone.id }}')">
+                    <label for="edit-zone-{{ zone.id }}" style="flex:1; margin:0; cursor:pointer; font-weight:500">
+                        {{ zone.name }} <small style="color:var(--text-muted)">({{ zone.subnet }})</small>
+                    </label>
+                    <select name="access_types[{{ zone.id }}]" id="edit-at-{{ zone.id }}" disabled style="width:130px">
+                        <option value="full">Full Access</option>
+                        <option value="established">Inbound Only</option>
+                        <option value="readonly">Read Only</option>
+                    </select>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" onclick="closeModal('modal-edit')">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Delete Confirm Modal -->
+<div class="modal-backdrop" id="modal-delete">
+    <div class="modal" style="max-width:400px">
+        <div class="modal-header">
+            <span class="modal-title">Delete Profile</span>
+            <button class="modal-close" onclick="closeModal('modal-delete')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <p style="color:var(--text-secondary)">Delete profile <strong id="delete-profile-name"></strong>? Peers using this profile will not be deleted but will lose their profile assignment.</p>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-ghost" onclick="closeModal('modal-delete')">Cancel</button>
+            <form method="POST" action="" id="form-delete" style="margin:0">
+                <button type="submit" class="btn btn-danger">Delete</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+document.querySelectorAll('.modal-backdrop').forEach(b => {
+    b.addEventListener('click', e => { if (e.target === b) b.classList.remove('open'); });
+});
+
+function toggleAccessType(checkbox, selectId) {
+    document.getElementById(selectId).disabled = !checkbox.checked;
+}
+
+function openEditModal(id, name, desc, profileZones) {
+    document.getElementById('edit-name').value = name;
+    document.getElementById('edit-desc').value = desc;
+    document.getElementById('form-edit').action = '/profiles/' + id;
+
+    const activeZones = {};
+    (profileZones || []).forEach(pz => { activeZones[pz.zone_id ?? pz.id] = pz.access_type; });
+
+    document.querySelectorAll('[id^="edit-zone-"]').forEach(cb => {
+        const zoneId = cb.value;
+        const atSel  = document.getElementById('edit-at-' + zoneId);
+        if (activeZones[zoneId] !== undefined) {
+            cb.checked      = true;
+            atSel.disabled  = false;
+            atSel.value     = activeZones[zoneId];
+        } else {
+            cb.checked      = false;
+            atSel.disabled  = true;
+            atSel.value     = 'full';
+        }
+    });
+
+    openModal('modal-edit');
+}
+
+function confirmDelete(id, name) {
+    document.getElementById('delete-profile-name').textContent = name;
+    document.getElementById('form-delete').action = '/profiles/' + id + '/delete';
+    openModal('modal-delete');
+}
+
+setTimeout(() => {
+    const el = document.getElementById('flash-msg');
+    if (el) el.style.opacity = '0';
+}, 4000);
+</script>
+{% endblock %}

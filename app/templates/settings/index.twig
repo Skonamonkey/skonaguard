@@ -1,0 +1,134 @@
+{% extends 'partials/layout.twig' %}
+
+{% block title %}Settings — SkonaGuard{% endblock %}
+{% block page_title %}Settings{% endblock %}
+
+{% block content %}
+
+{% if session.flash_error is defined and session.flash_error %}
+<div class="alert alert-danger" id="flash-msg">{{ session.flash_error }}</div>
+{% endif %}
+{% if session.flash_success is defined and session.flash_success %}
+<div class="alert alert-success" id="flash-msg">{{ session.flash_success }}</div>
+{% endif %}
+
+<div style="display:grid; gap:24px; grid-template-columns: 1fr 1fr">
+
+<!-- Server Settings -->
+<div class="card" style="grid-column:1/-1">
+    <div class="card-header">
+        <div class="card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+            WireGuard Server
+        </div>
+    </div>
+    <div class="card-body">
+        <form method="POST" action="/settings">
+            <input type="hidden" name="action" value="server">
+            <div class="form-row" style="margin-bottom:16px">
+                <div class="form-group">
+                    <label>Server Public IP</label>
+                    <input type="text" name="server_public_ip" value="{{ settings.server_public_ip ?? '' }}" placeholder="e.g. 213.171.194.152">
+                </div>
+                <div class="form-group">
+                    <label>WireGuard Port</label>
+                    <input type="text" name="wg_port" value="{{ settings.wg_port ?? '51820' }}" placeholder="51820">
+                </div>
+                <div class="form-group">
+                    <label>VPN Subnet</label>
+                    <input type="text" name="wg_subnet" value="{{ settings.wg_subnet ?? '' }}" placeholder="172.16.0.0/16">
+                </div>
+            </div>
+            <div class="info-row">
+                <div class="info-label">Server Public Key</div>
+                <div class="info-value">
+                    <div class="copy-wrap">
+                        <div class="code-block" id="pub-key">{{ settings.server_public_key ?? 'Not generated' }}</div>
+                        <button type="button" class="copy-btn" onclick="copyText('pub-key')" title="Copy">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div style="margin-top:16px">
+                <button type="submit" class="btn btn-primary">Save &amp; Apply</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Change Password -->
+<div class="card">
+    <div class="card-header">
+        <div class="card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            Change Password
+        </div>
+    </div>
+    <div class="card-body">
+        <form method="POST" action="/settings">
+            <input type="hidden" name="action" value="password">
+            <div class="form-group" style="margin-bottom:14px">
+                <label>Current Password</label>
+                <input type="password" name="current_password" required autocomplete="current-password">
+            </div>
+            <div class="form-group" style="margin-bottom:14px">
+                <label>New Password</label>
+                <input type="password" name="new_password" required minlength="8" autocomplete="new-password">
+            </div>
+            <div class="form-group" style="margin-bottom:18px">
+                <label>Confirm New Password</label>
+                <input type="password" name="confirm_password" required autocomplete="new-password">
+            </div>
+            <button type="submit" class="btn btn-primary">Update Password</button>
+        </form>
+    </div>
+</div>
+
+<!-- About -->
+<div class="card">
+    <div class="card-header">
+        <div class="card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            About
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="info-row">
+            <div class="info-label">Application</div>
+            <div class="info-value">SkonaGuard</div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">Version</div>
+            <div class="info-value">{{ app_version }}</div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">VPN Backend</div>
+            <div class="info-value">wireguard-go (userspace)</div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">Database</div>
+            <div class="info-value">SQLite (WAL mode)</div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">Logged in as</div>
+            <div class="info-value">{{ session.username }}</div>
+        </div>
+    </div>
+</div>
+
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function copyText(id) {
+    navigator.clipboard.writeText(document.getElementById(id).textContent.trim()).catch(()=>{});
+}
+setTimeout(() => {
+    const el = document.getElementById('flash-msg');
+    if (el) el.style.opacity = '0';
+}, 4000);
+</script>
+{% endblock %}

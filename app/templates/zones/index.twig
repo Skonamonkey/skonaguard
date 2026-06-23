@@ -1,0 +1,188 @@
+{% extends 'partials/layout.twig' %}
+
+{% block title %}Zones — SkonaGuard{% endblock %}
+{% block page_title %}Zones{% endblock %}
+
+{% block content %}
+
+{% if session.flash_error is defined and session.flash_error %}
+<div class="alert alert-danger" id="flash-msg">{{ session.flash_error }}</div>
+{% endif %}
+{% if session.flash_success is defined and session.flash_success %}
+<div class="alert alert-success" id="flash-msg">{{ session.flash_success }}</div>
+{% endif %}
+
+<div class="card">
+    <div class="card-header">
+        <div class="card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5"/></svg>
+            Network Zones
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="openModal('modal-add')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add Zone
+        </button>
+    </div>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Subnet</th>
+                    <th>Description</th>
+                    <th>Peers</th>
+                    <th>Created</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for zone in zones %}
+                <tr>
+                    <td><strong>{{ zone.name }}</strong></td>
+                    <td><span class="badge badge-info">{{ zone.subnet }}</span></td>
+                    <td style="color:var(--text-secondary)">{{ zone.description ?? '—' }}</td>
+                    <td>
+                        <span class="badge {% if zone.peer_count > 0 %}badge-active{% else %}badge-offline{% endif %}">
+                            {{ zone.peer_count }} peer{{ zone.peer_count != 1 ? 's' : '' }}
+                        </span>
+                    </td>
+                    <td style="color:var(--text-muted)">{{ zone.created_at|slice(0,10) }}</td>
+                    <td style="text-align:right; white-space:nowrap;">
+                        <button class="btn-icon" title="Edit"
+                            onclick='openEditModal({{ zone.id }}, {{ zone.name|json_encode }}, {{ zone.subnet|json_encode }}, {{ (zone.description ?? "")|json_encode }})'>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        </button>
+                        <button class="btn-icon danger" title="Delete"
+                            onclick="confirmDelete({{ zone.id }}, '{{ zone.name|e('js') }}')">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                        </button>
+                    </td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="6" style="text-align:center; color:var(--text-muted); padding:40px 0;">
+                        No zones yet. Add one to get started.
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add Zone Modal -->
+<div class="modal-backdrop" id="modal-add">
+    <div class="modal">
+        <div class="modal-header">
+            <span class="modal-title">Add Zone</span>
+            <button class="modal-close" onclick="closeModal('modal-add')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>
+        <form method="POST" action="/zones">
+            <div class="modal-body">
+                <div class="form-group" style="margin-bottom:16px">
+                    <label for="add-name">Zone Name</label>
+                    <input type="text" id="add-name" name="name" placeholder="e.g. Home LAN" required>
+                </div>
+                <div class="form-group" style="margin-bottom:16px">
+                    <label for="add-subnet">Subnet (CIDR)</label>
+                    <input type="text" id="add-subnet" name="subnet" placeholder="e.g. 172.16.2.0/24" required>
+                </div>
+                <div class="form-group">
+                    <label for="add-desc">Description <span style="color:var(--text-muted)">(optional)</span></label>
+                    <input type="text" id="add-desc" name="description" placeholder="Short description">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" onclick="closeModal('modal-add')">Cancel</button>
+                <button type="submit" class="btn btn-primary">Create Zone</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Zone Modal -->
+<div class="modal-backdrop" id="modal-edit">
+    <div class="modal">
+        <div class="modal-header">
+            <span class="modal-title">Edit Zone</span>
+            <button class="modal-close" onclick="closeModal('modal-edit')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>
+        <form method="POST" action="" id="form-edit">
+            <div class="modal-body">
+                <div class="form-group" style="margin-bottom:16px">
+                    <label for="edit-name">Zone Name</label>
+                    <input type="text" id="edit-name" name="name" required>
+                </div>
+                <div class="form-group" style="margin-bottom:16px">
+                    <label for="edit-subnet">Subnet (CIDR)</label>
+                    <input type="text" id="edit-subnet" name="subnet" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit-desc">Description</label>
+                    <input type="text" id="edit-desc" name="description">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" onclick="closeModal('modal-edit')">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Delete Confirm Modal -->
+<div class="modal-backdrop" id="modal-delete">
+    <div class="modal" style="max-width:400px">
+        <div class="modal-header">
+            <span class="modal-title">Delete Zone</span>
+            <button class="modal-close" onclick="closeModal('modal-delete')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <p style="color:var(--text-secondary)">Are you sure you want to delete <strong id="delete-zone-name"></strong>? This cannot be undone.</p>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-ghost" onclick="closeModal('modal-delete')">Cancel</button>
+            <form method="POST" action="" id="form-delete" style="margin:0">
+                <button type="submit" class="btn btn-danger">Delete</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function openModal(id) {
+    document.getElementById(id).classList.add('open');
+}
+function closeModal(id) {
+    document.getElementById(id).classList.remove('open');
+}
+function openEditModal(id, name, subnet, desc) {
+    document.getElementById('edit-name').value   = name;
+    document.getElementById('edit-subnet').value = subnet;
+    document.getElementById('edit-desc').value   = desc;
+    document.getElementById('form-edit').action  = '/zones/' + id;
+    openModal('modal-edit');
+}
+function confirmDelete(id, name) {
+    document.getElementById('delete-zone-name').textContent = name;
+    document.getElementById('form-delete').action = '/zones/' + id + '/delete';
+    openModal('modal-delete');
+}
+document.querySelectorAll('.modal-backdrop').forEach(b => {
+    b.addEventListener('click', e => { if (e.target === b) b.classList.remove('open'); });
+});
+setTimeout(() => {
+    const el = document.getElementById('flash-msg');
+    if (el) el.style.opacity = '0';
+}, 4000);
+</script>
+{% endblock %}

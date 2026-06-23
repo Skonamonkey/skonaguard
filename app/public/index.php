@@ -21,6 +21,8 @@ $app->addErrorMiddleware(
     true
 );
 
+$app->add(\SkonaGuard\Middleware\FlashMiddleware::class);
+
 require APP_ROOT . '/src/Routes/web.php';
 
 $app->run();

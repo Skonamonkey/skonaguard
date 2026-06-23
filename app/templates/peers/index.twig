@@ -1,0 +1,439 @@
+{% extends 'partials/layout.twig' %}
+
+{% block title %}Peers — SkonaGuard{% endblock %}
+{% block page_title %}Peers{% endblock %}
+
+{% block head %}
+<style>
+.peer-row td { vertical-align: middle; }
+.peer-actions { display:flex; gap:4px; justify-content:flex-end; flex-wrap:nowrap; }
+.qr-canvas { display:block; margin:0 auto; }
+.token-result { display:none; margin-top:12px; }
+.token-result.show { display:block; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+{% if session.flash_error is defined and session.flash_error %}
+<div class="alert alert-danger" id="flash-msg">{{ session.flash_error }}</div>
+{% endif %}
+{% if session.flash_success is defined and session.flash_success %}
+<div class="alert alert-success" id="flash-msg">{{ session.flash_success }}</div>
+{% endif %}
+
+<div class="card">
+    <div class="card-header">
+        <div class="card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+            VPN Peers
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="openModal('modal-add')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add Peer
+        </button>
+    </div>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Zone</th>
+                    <th>VPN IP</th>
+                    <th>Profile</th>
+                    <th>Gateway</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for peer in peers %}
+                <tr class="peer-row">
+                    <td>
+                        <strong>{{ peer.name }}</strong>
+                        {% if peer.notes %}<br><small style="color:var(--text-muted)">{{ peer.notes }}</small>{% endif %}
+                    </td>
+                    <td><span class="badge badge-info">{{ peer.zone_name }}</span></td>
+                    <td><code style="font-size:0.8rem">{{ peer.vpn_ip }}</code></td>
+                    <td>{{ peer.profile_name ?? '—' }}</td>
+                    <td>
+                        {% if peer.is_gateway %}
+                            <span class="badge badge-active">
+                                <span class="dot dot-green"></span> Gateway
+                            </span>
+                            {% if peer.gateway_subnet %}
+                            <br><small style="color:var(--text-muted)">{{ peer.gateway_subnet }}</small>
+                            {% endif %}
+                        {% else %}
+                            <span style="color:var(--text-muted)">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if peer.enabled %}
+                            <span class="badge badge-active"><span class="dot dot-green"></span> Enabled</span>
+                        {% else %}
+                            <span class="badge badge-inactive"><span class="dot dot-grey"></span> Disabled</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="peer-actions">
+                            <button class="btn-icon" title="Edit" onclick='openEditModal({{ peer|json_encode }})'>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                            </button>
+                            <a href="/peers/{{ peer.id }}/download" class="btn-icon" title="Download .conf">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            </a>
+                            <button class="btn-icon" title="QR Code" onclick="showQr({{ peer.id }}, '{{ peer.name|e('js') }}')">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                            </button>
+                            <button class="btn-icon" title="Create Share Link" onclick="openTokenModal({{ peer.id }}, '{{ peer.name|e('js') }}')">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                            </button>
+                            <button class="btn-icon danger" title="Delete" onclick="confirmDelete({{ peer.id }}, '{{ peer.name|e('js') }}')">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="7" style="text-align:center; color:var(--text-muted); padding:40px 0;">
+                        No peers yet. Add one to get started.
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add Peer Modal -->
+<div class="modal-backdrop" id="modal-add">
+    <div class="modal" style="max-width:600px">
+        <div class="modal-header">
+            <span class="modal-title">Add Peer</span>
+            <button class="modal-close" onclick="closeModal('modal-add')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>
+        <form method="POST" action="/peers">
+            <div class="modal-body">
+                <div class="form-row" style="margin-bottom:16px">
+                    <div class="form-group">
+                        <label>Peer Name</label>
+                        <input type="text" name="name" placeholder="e.g. Mike's Office PC" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Zone</label>
+                        <select name="zone_id" required>
+                            <option value="">Select zone…</option>
+                            {% for zone in zones %}
+                            <option value="{{ zone.id }}">{{ zone.name }} ({{ zone.subnet }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row" style="margin-bottom:16px">
+                    <div class="form-group">
+                        <label>Profile <span style="color:var(--text-muted)">(optional)</span></label>
+                        <select name="profile_id">
+                            <option value="">None</option>
+                            {% for profile in profiles %}
+                            <option value="{{ profile.id }}">{{ profile.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>DNS</label>
+                        <input type="text" name="dns" value="1.1.1.1" placeholder="1.1.1.1">
+                    </div>
+                </div>
+                <div class="form-group" style="margin-bottom:16px">
+                    <label>Allowed IPs <span style="color:var(--text-muted)">(what traffic the client routes through VPN)</span></label>
+                    <input type="text" name="custom_allowed_ips" placeholder="172.16.0.0/16 (leave blank for full VPN subnet)">
+                </div>
+                <div class="form-group" style="margin-bottom:16px">
+                    <label>Notes <span style="color:var(--text-muted)">(optional)</span></label>
+                    <input type="text" name="notes" placeholder="Short description">
+                </div>
+                <div style="background:var(--surface-input); border:1px solid var(--border-input); border-radius:var(--radius-sm); padding:14px; margin-bottom:16px">
+                    <div class="form-check" style="margin-bottom:10px">
+                        <input type="checkbox" id="add-is-gateway" name="is_gateway" value="1" onchange="toggleGateway('add')">
+                        <label for="add-is-gateway">This peer is a site gateway (routes subnet traffic)</label>
+                    </div>
+                    <div id="add-gateway-fields" style="display:none">
+                        <div class="form-group">
+                            <label>Subnets to Advertise <span style="color:var(--text-muted)">(comma-separated CIDR)</span></label>
+                            <input type="text" name="gateway_subnet" placeholder="e.g. 192.168.99.0/24, 10.0.0.0/24">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" onclick="closeModal('modal-add')">Cancel</button>
+                <button type="submit" class="btn btn-primary">Create Peer</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Peer Modal -->
+<div class="modal-backdrop" id="modal-edit">
+    <div class="modal" style="max-width:600px">
+        <div class="modal-header">
+            <span class="modal-title">Edit Peer</span>
+            <button class="modal-close" onclick="closeModal('modal-edit')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>
+        <form method="POST" action="" id="form-edit">
+            <div class="modal-body">
+                <div class="form-row" style="margin-bottom:16px">
+                    <div class="form-group">
+                        <label>Peer Name</label>
+                        <input type="text" id="edit-name" name="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Zone</label>
+                        <input type="text" id="edit-zone" readonly style="opacity:0.6; cursor:not-allowed">
+                    </div>
+                </div>
+                <div class="form-row" style="margin-bottom:16px">
+                    <div class="form-group">
+                        <label>Profile</label>
+                        <select id="edit-profile" name="profile_id">
+                            <option value="">None</option>
+                            {% for profile in profiles %}
+                            <option value="{{ profile.id }}">{{ profile.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>DNS</label>
+                        <input type="text" id="edit-dns" name="dns">
+                    </div>
+                </div>
+                <div class="form-group" style="margin-bottom:16px">
+                    <label>Allowed IPs</label>
+                    <input type="text" id="edit-allowed" name="custom_allowed_ips">
+                </div>
+                <div class="form-group" style="margin-bottom:16px">
+                    <label>Notes</label>
+                    <input type="text" id="edit-notes" name="notes">
+                </div>
+                <div style="background:var(--surface-input); border:1px solid var(--border-input); border-radius:var(--radius-sm); padding:14px; margin-bottom:16px">
+                    <div class="form-check" style="margin-bottom:10px">
+                        <input type="checkbox" id="edit-is-gateway" name="is_gateway" value="1" onchange="toggleGateway('edit')">
+                        <label for="edit-is-gateway">This peer is a site gateway</label>
+                    </div>
+                    <div id="edit-gateway-fields" style="display:none">
+                        <div class="form-group">
+                            <label>Subnets to Advertise</label>
+                            <input type="text" id="edit-gateway-subnet" name="gateway_subnet">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-check">
+                    <input type="checkbox" id="edit-enabled" name="enabled" value="1">
+                    <label for="edit-enabled">Peer enabled</label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-ghost" onclick="closeModal('modal-edit')">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- QR Modal -->
+<div class="modal-backdrop" id="modal-qr">
+    <div class="modal" style="max-width:380px">
+        <div class="modal-header">
+            <span class="modal-title" id="qr-modal-title">Config QR Code</span>
+            <button class="modal-close" onclick="closeModal('modal-qr')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>
+        <div class="modal-body" style="text-align:center">
+            <div id="qr-container" style="display:flex; justify-content:center; margin-bottom:12px; min-height:200px; align-items:center;">
+                <span style="color:var(--text-muted)">Loading…</span>
+            </div>
+            <p style="font-size:var(--font-sm); color:var(--text-secondary)">Scan with the WireGuard app to import configuration.</p>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-ghost" onclick="closeModal('modal-qr')">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- Token Modal -->
+<div class="modal-backdrop" id="modal-token">
+    <div class="modal" style="max-width:480px">
+        <div class="modal-header">
+            <span class="modal-title" id="token-modal-title">Create Share Link</span>
+            <button class="modal-close" onclick="closeModal('modal-token')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group" style="margin-bottom:16px">
+                <label>Link Expiry</label>
+                <select id="token-expires">
+                    <option value="1h">1 Hour</option>
+                    <option value="24h" selected>24 Hours</option>
+                    <option value="7d">7 Days</option>
+                    <option value="">No Expiry</option>
+                </select>
+            </div>
+            <button class="btn btn-primary" id="token-generate-btn" onclick="generateToken()">Generate Link</button>
+            <div class="token-result" id="token-result">
+                <p style="font-size:var(--font-sm); color:var(--text-secondary); margin-top:16px; margin-bottom:8px">Share this link to allow direct config download:</p>
+                <div class="copy-wrap">
+                    <div class="code-block" id="token-url" style="word-break:break-all"></div>
+                    <button class="copy-btn" onclick="copyTokenUrl()" title="Copy">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                    </button>
+                </div>
+                <p id="token-expires-note" style="font-size:0.7rem; color:var(--text-muted); margin-top:6px"></p>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-ghost" onclick="closeModal('modal-token')">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirm Modal -->
+<div class="modal-backdrop" id="modal-delete">
+    <div class="modal" style="max-width:400px">
+        <div class="modal-header">
+            <span class="modal-title">Delete Peer</span>
+            <button class="modal-close" onclick="closeModal('modal-delete')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <p style="color:var(--text-secondary)">Are you sure you want to delete <strong id="delete-peer-name"></strong>? This will remove them from WireGuard immediately.</p>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-ghost" onclick="closeModal('modal-delete')">Cancel</button>
+            <form method="POST" action="" id="form-delete" style="margin:0">
+                <button type="submit" class="btn btn-danger">Delete</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script>
+let currentTokenPeerId = null;
+
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+document.querySelectorAll('.modal-backdrop').forEach(b => {
+    b.addEventListener('click', e => { if (e.target === b) b.classList.remove('open'); });
+});
+
+function toggleGateway(prefix) {
+    const cb     = document.getElementById(prefix + '-is-gateway');
+    const fields = document.getElementById(prefix + '-gateway-fields');
+    fields.style.display = cb.checked ? 'block' : 'none';
+}
+
+function openEditModal(peer) {
+    document.getElementById('edit-name').value           = peer.name;
+    document.getElementById('edit-zone').value           = peer.zone_name + ' (' + peer.zone_subnet + ')';
+    document.getElementById('edit-dns').value            = peer.dns ?? '';
+    document.getElementById('edit-notes').value          = peer.notes ?? '';
+    document.getElementById('edit-allowed').value        = peer.custom_allowed_ips ?? '';
+    document.getElementById('edit-enabled').checked      = peer.enabled == 1;
+    document.getElementById('edit-is-gateway').checked   = peer.is_gateway == 1;
+    document.getElementById('edit-gateway-subnet').value = peer.gateway_subnet ?? '';
+    document.getElementById('edit-gateway-fields').style.display = peer.is_gateway == 1 ? 'block' : 'none';
+
+    const profileSel = document.getElementById('edit-profile');
+    profileSel.value = peer.profile_id ?? '';
+
+    document.getElementById('form-edit').action = '/peers/' + peer.id;
+    openModal('modal-edit');
+}
+
+function confirmDelete(id, name) {
+    document.getElementById('delete-peer-name').textContent = name;
+    document.getElementById('form-delete').action = '/peers/' + id + '/delete';
+    openModal('modal-delete');
+}
+
+function showQr(peerId, peerName) {
+    document.getElementById('qr-modal-title').textContent = 'QR Code — ' + peerName;
+    document.getElementById('qr-container').innerHTML = '<span style="color:var(--text-muted)">Loading…</span>';
+    openModal('modal-qr');
+
+    fetch('/peers/' + peerId + '/qr')
+        .then(r => r.json())
+        .then(data => {
+            const conf = atob(data.config_b64);
+            document.getElementById('qr-container').innerHTML = '<canvas id="qr-canvas"></canvas>';
+            QRCode.toCanvas(document.getElementById('qr-canvas'), conf, { width: 280, margin: 2 }, function(err) {
+                if (err) document.getElementById('qr-container').innerHTML = '<span style="color:var(--color-danger)">QR generation failed</span>';
+            });
+        })
+        .catch(() => {
+            document.getElementById('qr-container').innerHTML = '<span style="color:var(--color-danger)">Failed to load config</span>';
+        });
+}
+
+function openTokenModal(peerId, peerName) {
+    currentTokenPeerId = peerId;
+    document.getElementById('token-modal-title').textContent = 'Share Link — ' + peerName;
+    document.getElementById('token-result').classList.remove('show');
+    document.getElementById('token-url').textContent = '';
+    document.getElementById('token-expires-note').textContent = '';
+    openModal('modal-token');
+}
+
+function generateToken() {
+    if (!currentTokenPeerId) return;
+    const expires = document.getElementById('token-expires').value;
+    const btn = document.getElementById('token-generate-btn');
+    btn.disabled = true;
+    btn.textContent = 'Generating…';
+
+    fetch('/peers/' + currentTokenPeerId + '/token', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'expires=' + encodeURIComponent(expires),
+    })
+    .then(r => r.json())
+    .then(data => {
+        document.getElementById('token-url').textContent = data.url;
+        if (data.expires_at) {
+            document.getElementById('token-expires-note').textContent = 'Expires: ' + data.expires_at;
+        } else {
+            document.getElementById('token-expires-note').textContent = 'No expiry';
+        }
+        document.getElementById('token-result').classList.add('show');
+    })
+    .catch(() => alert('Failed to generate link'))
+    .finally(() => {
+        btn.disabled = false;
+        btn.textContent = 'Generate Link';
+    });
+}
+
+function copyTokenUrl() {
+    const text = document.getElementById('token-url').textContent;
+    navigator.clipboard.writeText(text).catch(() => {});
+}
+
+setTimeout(() => {
+    const el = document.getElementById('flash-msg');
+    if (el) el.style.opacity = '0';
+}, 4000);
+</script>
+{% endblock %}
