@@ -37,4 +37,7 @@ EOF
     chmod 600 /etc/wireguard/wg0.conf
 fi
 
+chown -R nobody:nobody /etc/wireguard
+chmod 750 /etc/wireguard
+
 exec /usr/bin/supervisord -c /etc/supervisord.conf
