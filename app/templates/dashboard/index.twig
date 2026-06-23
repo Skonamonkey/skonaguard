@@ -1,0 +1,193 @@
+{% extends "partials/layout.twig" %}
+
+{% block title %}Dashboard &mdash; SkonaGuard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block head %}
+<style>
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.75rem;
+    }
+
+    .stat-card {
+        background: var(--surface-card);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        padding: 1.25rem 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+    }
+    .stat-label {
+        font-size: var(--font-sm);
+        color: var(--text-muted);
+        font-weight: 500;
+    }
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        line-height: 1;
+    }
+    .stat-card.primary .stat-value { color: var(--color-primary); }
+    .stat-card.success .stat-value { color: var(--color-success); }
+
+    .section-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+    }
+    .section-title {
+        font-size: var(--font-md);
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+    .btn-sm {
+        padding: 0.4rem 0.9rem;
+        background: var(--color-primary);
+        color: #fff;
+        border-radius: var(--radius-sm);
+        font-size: var(--font-sm);
+        font-weight: 600;
+        text-decoration: none;
+        transition: background var(--transition);
+    }
+    .btn-sm:hover { background: var(--color-primary-hover); }
+
+    .table-card {
+        background: var(--surface-card);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    th {
+        padding: 0.75rem 1rem;
+        font-size: var(--font-sm);
+        font-weight: 600;
+        color: var(--text-muted);
+        text-align: left;
+        background: var(--surface-raised);
+        border-bottom: 1px solid var(--border-color);
+    }
+    td {
+        padding: 0.75rem 1rem;
+        font-size: var(--font-sm);
+        color: var(--text-secondary);
+        border-bottom: 1px solid var(--border-subtle);
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--surface-hover); }
+
+    .badge {
+        display: inline-block;
+        padding: 0.2rem 0.6rem;
+        border-radius: 99px;
+        font-size: 0.7rem;
+        font-weight: 600;
+    }
+    .badge-blue   { background: var(--color-primary-muted); color: var(--color-primary); }
+    .badge-green  { background: var(--color-success-muted); color: var(--color-success); }
+    .badge-purple { background: var(--color-purple-muted);  color: var(--color-purple); }
+
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1rem;
+        color: var(--text-muted);
+    }
+    .empty-state p { font-size: var(--font-sm); margin-top: 0.5rem; }
+
+    .wg-status {
+        background: var(--surface-card);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        padding: 1rem 1.25rem;
+        margin-bottom: 1.75rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-size: var(--font-sm);
+    }
+    .status-dot {
+        width: 10px; height: 10px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+    .status-dot.online  { background: var(--color-success); box-shadow: 0 0 6px var(--color-success); }
+    .status-dot.offline { background: var(--color-danger); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="wg-status">
+    <div class="status-dot online"></div>
+    <span style="color:var(--text-primary); font-weight:600;">WireGuard</span>
+    <span style="color:var(--text-muted);">running &mdash; interface wg0 active</span>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card primary">
+        <div class="stat-label">Total Peers</div>
+        <div class="stat-value">{{ total_peers }}</div>
+    </div>
+    <div class="stat-card success">
+        <div class="stat-label">Connected</div>
+        <div class="stat-value">{{ enabled_peers }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Zones</div>
+        <div class="stat-value">{{ total_zones }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Profiles</div>
+        <div class="stat-value">{{ total_profiles }}</div>
+    </div>
+</div>
+
+<div class="section-header">
+    <div class="section-title">Recent Peers</div>
+    <a href="/peers/add" class="btn-sm">+ Add Peer</a>
+</div>
+
+<div class="table-card">
+    {% if recent_peers|length > 0 %}
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Zone</th>
+                <th>VPN IP</th>
+                <th>Type</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for peer in recent_peers %}
+            <tr>
+                <td style="color:var(--text-primary); font-weight:500;">
+                    <a href="/peers/{{ peer.id }}" style="color:inherit; text-decoration:none;">{{ peer.name }}</a>
+                </td>
+                <td><span class="badge badge-blue">{{ peer.zone_name }}</span></td>
+                <td style="font-family:monospace;">{{ peer.vpn_ip }}</td>
+                <td>
+                    {% if peer.is_gateway %}
+                        <span class="badge badge-purple">Gateway</span>
+                    {% else %}
+                        <span class="badge badge-green">Client</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+        🔒
+        <p>No peers yet. <a href="/peers/add" style="color:var(--color-primary);">Add your first peer</a> to get started.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

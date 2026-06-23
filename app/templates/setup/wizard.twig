@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Setup &mdash; SkonaGuard</title>
+    <link rel="icon" href="/assets/favicon.ico">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/assets/theme.css">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: var(--font-family);
+            background: var(--surface-bg);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .setup-wrap {
+            width: 100%;
+            max-width: 560px;
+        }
+
+        .setup-logo {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .setup-logo img {
+            height: 52px;
+            margin-bottom: 0.75rem;
+        }
+        .setup-logo h1 {
+            font-size: var(--font-xl);
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: -0.02em;
+        }
+        .setup-logo p {
+            color: var(--text-secondary);
+            font-size: var(--font-sm);
+            margin-top: 0.25rem;
+        }
+
+        .progress-bar {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+        }
+        .progress-step {
+            flex: 1;
+            height: 4px;
+            border-radius: 2px;
+            background: var(--border-color);
+            transition: background var(--transition);
+        }
+        .progress-step.done  { background: var(--color-primary); }
+        .progress-step.active { background: var(--color-primary); opacity: 0.6; }
+
+        .card {
+            background: var(--surface-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+        }
+
+        .step-header {
+            margin-bottom: 1.5rem;
+        }
+        .step-label {
+            font-size: var(--font-sm);
+            color: var(--color-primary);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.4rem;
+        }
+        .step-title {
+            font-size: var(--font-lg);
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .step-desc {
+            font-size: var(--font-sm);
+            color: var(--text-secondary);
+            margin-top: 0.4rem;
+            line-height: 1.6;
+        }
+
+        .alert-error {
+            background: var(--color-danger-muted);
+            border: 1px solid var(--color-danger);
+            color: var(--color-danger);
+            border-radius: var(--radius-md);
+            padding: 0.75rem 1rem;
+            font-size: var(--font-sm);
+            margin-bottom: 1.25rem;
+        }
+
+        .form-group { margin-bottom: 1.25rem; }
+
+        label {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: var(--font-sm);
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+        label .tip {
+            font-weight: 400;
+            color: var(--text-muted);
+            font-size: 0.7rem;
+        }
+
+        input[type="text"],
+        input[type="password"],
+        input[type="number"] {
+            width: 100%;
+            background: var(--surface-input);
+            border: 1px solid var(--border-input);
+            border-radius: var(--radius-md);
+            color: var(--text-primary);
+            font-family: var(--font-family);
+            font-size: var(--font-base);
+            padding: 0.65rem 0.9rem;
+            transition: border-color var(--transition), box-shadow var(--transition);
+            outline: none;
+        }
+        input:focus {
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px var(--color-primary-muted);
+        }
+
+        .hint {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            margin-top: 0.35rem;
+        }
+
+        .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.7rem 1.5rem;
+            border-radius: var(--radius-md);
+            font-family: var(--font-family);
+            font-size: var(--font-base);
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: background var(--transition), opacity var(--transition);
+            text-decoration: none;
+        }
+        .btn-primary {
+            background: var(--color-primary);
+            color: #fff;
+            width: 100%;
+            margin-top: 0.5rem;
+        }
+        .btn-primary:hover { background: var(--color-primary-hover); }
+
+        .confirm-box {
+            background: var(--surface-input);
+            border: 1px solid var(--border-input);
+            border-radius: var(--radius-md);
+            padding: 1rem;
+            font-size: var(--font-sm);
+            color: var(--text-secondary);
+            margin-bottom: 1.25rem;
+        }
+        .confirm-box strong { color: var(--text-primary); font-size: var(--font-base); }
+
+        .done-icon {
+            text-align: center;
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+        .done-title {
+            text-align: center;
+            font-size: var(--font-lg);
+            font-weight: 700;
+            color: var(--color-success);
+            margin-bottom: 0.5rem;
+        }
+        .done-desc {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: var(--font-sm);
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+<div class="setup-wrap">
+    <div class="setup-logo">
+        <img src="/assets/logo.png" alt="SkonaGuard">
+        <h1>SkonaGuard</h1>
+        <p>Self-hosted VPN Manager &mdash; Initial Setup</p>
+    </div>
+
+    <div class="progress-bar">
+        {% for i in 1..total_steps %}
+            <div class="progress-step {% if i < step %}done{% elseif i == step %}active{% endif %}"></div>
+        {% endfor %}
+    </div>
+
+    <div class="card">
+        {% if error %}
+            <div class="alert-error">{{ error }}</div>
+        {% endif %}
+
+        {% if step == 1 %}
+            <div class="step-header">
+                <div class="step-label">Step 1 of {{ total_steps }}</div>
+                <div class="step-title">Create your admin account</div>
+                <div class="step-desc">This will be your login to manage SkonaGuard. Choose something unique &mdash; common usernames like <em>admin</em> or <em>root</em> are not allowed.</div>
+            </div>
+            <form method="POST" action="/setup/1">
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" name="username" value="{{ data.username ?? '' }}" required autocomplete="off" autofocus>
+                </div>
+                <div class="form-group">
+                    <label>Password <span class="tip">(min. 10 characters)</span></label>
+                    <input type="password" name="password" required autocomplete="new-password">
+                </div>
+                <div class="form-group">
+                    <label>Confirm password</label>
+                    <input type="password" name="confirm" required autocomplete="new-password">
+                </div>
+                <button type="submit" class="btn btn-primary">Continue &rarr;</button>
+            </form>
+
+        {% elseif step == 2 %}
+            <div class="step-header">
+                <div class="step-label">Step 2 of {{ total_steps }}</div>
+                <div class="step-title">Server settings</div>
+                <div class="step-desc">Confirm your server's public IP and WireGuard settings. These are used when generating peer config files.</div>
+            </div>
+            <form method="POST" action="/setup/2">
+                <div class="form-group">
+                    <label>Server public IP
+                        <span class="tip">— the internet-facing IP your peers will connect to</span>
+                    </label>
+                    <input type="text" name="server_ip"
+                           value="{{ data.server_ip ?? detected_ip }}" required autocomplete="off">
+                    {% if detected_ip %}
+                        <div class="hint">Auto-detected: {{ detected_ip }}</div>
+                    {% endif %}
+                </div>
+                <div class="row-2">
+                    <div class="form-group">
+                        <label>WireGuard port</label>
+                        <input type="number" name="wg_port" value="{{ data.wg_port ?? 51820 }}" min="1" max="65535" required>
+                        <div class="hint">Default: 51820/UDP</div>
+                    </div>
+                    <div class="form-group">
+                        <label>VPN subnet</label>
+                        <input type="text" name="wg_subnet" value="{{ data.wg_subnet ?? '172.16.0.0/16' }}" required>
+                        <div class="hint">e.g. 172.16.0.0/16</div>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">Continue &rarr;</button>
+            </form>
+
+        {% elseif step == 3 %}
+            <div class="step-header">
+                <div class="step-label">Step 3 of {{ total_steps }}</div>
+                <div class="step-title">Create your first zone</div>
+                <div class="step-desc">Zones group your peers into network segments (e.g. <em>Home</em>, <em>Office</em>, <em>Core Infra</em>). You can add more zones after setup.</div>
+            </div>
+            <form method="POST" action="/setup/3">
+                <div class="form-group">
+                    <label>Zone name <span class="tip">— e.g. Home, Office 1, Core Infra</span></label>
+                    <input type="text" name="zone_name" value="{{ data.zone_name ?? '' }}" required autofocus>
+                </div>
+                <div class="form-group">
+                    <label>Zone subnet <span class="tip">— the IP range for this zone's peers</span></label>
+                    <input type="text" name="zone_subnet" value="{{ data.zone_subnet ?? '172.16.1.0/24' }}" required>
+                    <div class="hint">Must be within your VPN subnet ({{ data.wg_subnet ?? '172.16.0.0/16' }}). e.g. 172.16.1.0/24</div>
+                </div>
+                <div class="form-group">
+                    <label>Description <span class="tip">(optional)</span></label>
+                    <input type="text" name="zone_description" value="{{ data.zone_description ?? '' }}" placeholder="What is this zone for?">
+                </div>
+                <button type="submit" class="btn btn-primary">Continue &rarr;</button>
+            </form>
+
+        {% elseif step == 4 %}
+            <div class="done-icon">🛡️</div>
+            <div class="done-title">You're all set!</div>
+            <div class="done-desc">
+                SkonaGuard is ready to go. Here's a summary of what was configured:
+            </div>
+
+            <div class="confirm-box">
+                <strong>Admin:</strong> {{ data.username }}<br>
+                <strong>Server IP:</strong> {{ data.server_ip }}<br>
+                <strong>WireGuard port:</strong> {{ data.wg_port }} / UDP<br>
+                <strong>VPN subnet:</strong> {{ data.wg_subnet }}<br>
+                <strong>First zone:</strong> {{ data.zone_name }} ({{ data.zone_subnet }})
+            </div>
+
+            <form method="POST" action="/setup/4">
+                <button type="submit" class="btn btn-primary">Launch SkonaGuard &rarr;</button>
+            </form>
+        {% endif %}
+    </div>
+</div>
+</body>
+</html>
