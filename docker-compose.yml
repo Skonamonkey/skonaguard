@@ -25,3 +25,10 @@ services:
       - WG_SUBNET_HUB=${WG_SUBNET_HUB:-172.16.0.1}
       - SERVER_PUBLIC_IP=${SERVER_PUBLIC_IP:-}
       - UI_BIND=${UI_BIND:-0.0.0.0}
+    networks:
+      - default
+      - proxy-net
+
+networks:
+  proxy-net:
+    external: true
