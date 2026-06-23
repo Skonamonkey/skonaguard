@@ -121,7 +121,15 @@ class WireGuardService
         $stripped = $this->stripWgQuickConf($conf);
         $tmp = tempnam('/tmp', 'wg-sync-');
         file_put_contents($tmp, $stripped);
-        shell_exec("wg syncconf " . self::WG_INTERFACE . " " . escapeshellarg($tmp) . " 2>&1");
+
+        $attempts = 0;
+        do {
+            $out = shell_exec("wg syncconf " . self::WG_INTERFACE . " " . escapeshellarg($tmp) . " 2>&1");
+            if ($out === null || $out === '') break;
+            $attempts++;
+            if ($attempts < 3) sleep(1);
+        } while ($attempts < 3);
+
         unlink($tmp);
 
         return true;
