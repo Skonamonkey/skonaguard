@@ -17,9 +17,7 @@ if [ ! -d "$DATA_DIR" ]; then
     mkdir -p "$DATA_DIR"
 fi
 
-if [ ! -f "$DB_FILE" ]; then
-    php /app/scripts/migrate.php
-fi
+php /app/scripts/migrate.php
 
 if [ ! -f /etc/wireguard/wg0.conf ]; then
     wg genkey | tee /tmp/wg_private | wg pubkey > /tmp/wg_public
