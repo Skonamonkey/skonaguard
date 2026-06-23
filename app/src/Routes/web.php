@@ -12,6 +12,7 @@ use SkonaGuard\Controllers\ZonesController;
 use SkonaGuard\Controllers\PeersController;
 use SkonaGuard\Controllers\ProfilesController;
 use SkonaGuard\Controllers\SettingsController;
+use SkonaGuard\Controllers\AclController;
 use SkonaGuard\Middleware\AuthMiddleware;
 
 $app->add(\Slim\Views\TwigMiddleware::createFromContainer($app, Twig::class));
@@ -56,4 +57,9 @@ $app->group('', function (\Slim\Routing\RouteCollectorProxy $group) {
 
     $group->get('/settings', [SettingsController::class, 'index']);
     $group->post('/settings', [SettingsController::class, 'update']);
+
+    $group->get('/acls', [AclController::class, 'index']);
+    $group->post('/acls', [AclController::class, 'store']);
+    $group->post('/acls/{id:[0-9]+}', [AclController::class, 'update']);
+    $group->post('/acls/{id:[0-9]+}/delete', [AclController::class, 'destroy']);
 })->add(AuthMiddleware::class);
