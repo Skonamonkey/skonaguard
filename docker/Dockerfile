@@ -15,6 +15,7 @@ RUN apk add --no-cache \
     iproute2 \
     wireguard-tools \
     sqlite \
+    sqlite-dev \
     && docker-php-ext-install pdo pdo_sqlite
 
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
