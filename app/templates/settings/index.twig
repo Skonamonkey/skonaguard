@@ -96,6 +96,35 @@
     </div>
 </div>
 
+<!-- ACL Enforcement -->
+<div class="card">
+    <div class="card-header">
+        <div class="card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            ACL Enforcement
+        </div>
+    </div>
+    <div class="card-body">
+        <p style="color:var(--text-muted); font-size:0.875rem; margin-bottom:16px">
+            When enabled, iptables rules are applied to enforce zone access control lists. An isolated <code>SKONAGUARD</code> chain is used — existing firewall rules are never modified. Safe to toggle at any time.
+        </p>
+        <form method="POST" action="/settings">
+            <input type="hidden" name="action" value="acl">
+            <label style="display:flex; align-items:center; gap:12px; cursor:pointer; margin-bottom:18px">
+                <div style="position:relative; width:44px; height:24px; flex-shrink:0">
+                    <input type="checkbox" name="acl_enforcement" id="acl-toggle" value="1" style="opacity:0; width:0; height:0; position:absolute"
+                        {{ (settings.acl_enforcement ?? '0') == '1' ? 'checked' : '' }}>
+                    <span id="acl-track" style="position:absolute; inset:0; border-radius:12px; background:{{ (settings.acl_enforcement ?? '0') == '1' ? 'var(--color-primary)' : 'var(--border-color)' }}; transition:background 0.2s">
+                        <span id="acl-thumb" style="position:absolute; top:3px; left:{{ (settings.acl_enforcement ?? '0') == '1' ? '23px' : '3px' }}; width:18px; height:18px; border-radius:50%; background:#fff; transition:left 0.2s"></span>
+                    </span>
+                </div>
+                <span style="font-weight:600">Enable ACL enforcement</span>
+            </label>
+            <button type="submit" class="btn btn-primary">Apply</button>
+        </form>
+    </div>
+</div>
+
 <!-- About -->
 <div class="card">
     <div class="card-header">
@@ -141,5 +170,16 @@ setTimeout(() => {
     const el = document.getElementById('flash-msg');
     if (el) el.style.opacity = '0';
 }, 4000);
+
+const aclToggle = document.getElementById('acl-toggle');
+const aclTrack  = document.getElementById('acl-track');
+const aclThumb  = document.getElementById('acl-thumb');
+if (aclToggle) {
+    aclToggle.addEventListener('change', () => {
+        const on = aclToggle.checked;
+        aclTrack.style.background = on ? 'var(--color-primary)' : 'var(--border-color)';
+        aclThumb.style.left = on ? '23px' : '3px';
+    });
+}
 </script>
 {% endblock %}

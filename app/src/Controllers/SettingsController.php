@@ -40,6 +40,10 @@ class SettingsController
             return $this->changePassword($response, $body);
         }
 
+        if ($action === 'acl') {
+            return $this->updateAcl($response, $body);
+        }
+
         $serverIp  = trim($body['server_public_ip'] ?? '');
         $serverLan = trim($body['server_lan_ip'] ?? '');
         $wgPort    = trim($body['wg_port'] ?? '51820');
@@ -61,6 +65,19 @@ class SettingsController
         } catch (\Throwable) {}
 
         $_SESSION['flash_success'] = 'Settings saved.';
+        return $response->withHeader('Location', '/settings')->withStatus(302);
+    }
+
+    private function updateAcl(Response $response, array $body): Response
+    {
+        $enabled = isset($body['acl_enforcement']) ? '1' : '0';
+        $this->db->execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('acl_enforcement', ?)", [$enabled]);
+
+        try {
+            $this->wg->syncAcl();
+        } catch (\Throwable) {}
+
+        $_SESSION['flash_success'] = 'ACL enforcement ' . ($enabled === '1' ? 'enabled' : 'disabled') . '.';
         return $response->withHeader('Location', '/settings')->withStatus(302);
     }
 
