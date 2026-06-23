@@ -454,6 +454,20 @@ tr:hover td { background: var(--surface-hover); }
 
 .btn-sm { padding: 4px 10px; font-size: 0.7rem; }
 
+.advanced-toggle {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0;
+  text-decoration: underline dotted;
+}
+.advanced-toggle:hover { color: var(--text-secondary); }
+
 .btn-icon {
   padding: 6px;
   background: none;

@@ -381,6 +381,11 @@ document.querySelectorAll('.modal-backdrop').forEach(b => {
     b.addEventListener('click', e => { if (e.target === b) b.classList.remove('open'); });
 });
 
+function toggleAdvanced(id) {
+    const el = document.getElementById(id);
+    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
 function toggleGateway(prefix) {
     const cb     = document.getElementById(prefix + '-is-gateway');
     const fields = document.getElementById(prefix + '-gateway-fields');
