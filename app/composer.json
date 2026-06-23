@@ -1,0 +1,24 @@
+{
+    "name": "skonamonkey/skonaguard",
+    "description": "Self-hosted WireGuard VPN manager",
+    "type": "project",
+    "require": {
+        "php": "^8.1",
+        "slim/slim": "^4.0",
+        "slim/psr7": "^1.0",
+        "slim/twig-view": "^3.0",
+        "php-di/php-di": "^7.0",
+        "illuminate/database": "^10.0",
+        "illuminate/events": "^10.0",
+        "vlucas/phpdotenv": "^5.0",
+        "tuupola/slim-basic-auth": "^3.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "SkonaGuard\\": "src/"
+        }
+    },
+    "config": {
+        "optimize-autoloader": true
+    }
+}

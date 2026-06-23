@@ -1,0 +1,6 @@
+.env
+data/
+app/vendor/
+app/composer.lock
+*.db
+*.log
