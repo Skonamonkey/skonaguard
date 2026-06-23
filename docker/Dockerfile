@@ -32,7 +32,7 @@ COPY app/ .
 COPY .env.example /app/.env.example
 
 COPY docker/nginx.conf /etc/nginx/nginx.conf
-COPY docker/php-fpm.conf /etc/php82/php-fpm.d/www.conf
+COPY docker/php-fpm.conf /usr/local/etc/php-fpm.d/www.conf
 COPY docker/supervisord.conf /etc/supervisord.conf
 COPY scripts/ /app/scripts/
 COPY scripts/entrypoint.sh /entrypoint.sh
