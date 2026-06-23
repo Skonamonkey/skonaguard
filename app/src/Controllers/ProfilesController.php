@@ -19,8 +19,9 @@ class ProfilesController
     public function index(Request $request, Response $response): Response
     {
         $profiles = $this->db->query("
-            SELECT p.*, COUNT(DISTINCT pr.id) as peer_count
+            SELECT p.*, z.name as zone_name, z.subnet as zone_subnet, COUNT(DISTINCT pr.id) as peer_count
             FROM profiles p
+            LEFT JOIN zones z ON z.id = p.zone_id
             LEFT JOIN peers pr ON pr.profile_id = p.id
             GROUP BY p.id
             ORDER BY p.name
@@ -28,29 +29,41 @@ class ProfilesController
 
         $zones = $this->db->query("SELECT * FROM zones ORDER BY name");
 
-        $profileZones = [];
-        foreach ($profiles as $profile) {
-            $profileZones[$profile['id']] = $this->db->query("
-                SELECT z.*, pza.access_type
-                FROM profile_zone_access pza
-                JOIN zones z ON z.id = pza.zone_id
-                WHERE pza.profile_id = ?
-            ", [$profile['id']]);
+        return $this->view->render($response, 'profiles/index.twig', [
+            'active_nav' => 'profiles',
+            'profiles'   => $profiles,
+            'zones'      => $zones,
+        ]);
+    }
+
+    public function data(Request $request, Response $response, string $id): Response
+    {
+        $profile = $this->db->queryOne("
+            SELECT p.*, z.name as zone_name, z.subnet as zone_subnet
+            FROM profiles p
+            LEFT JOIN zones z ON z.id = p.zone_id
+            WHERE p.id = ?
+        ", [(int) $id]);
+
+        if (!$profile) {
+            $response->getBody()->write(json_encode(['error' => 'Not found']));
+            return $response->withHeader('Content-Type', 'application/json')->withStatus(404);
         }
 
-        return $this->view->render($response, 'profiles/index.twig', [
-            'active_nav'   => 'profiles',
-            'profiles'     => $profiles,
-            'zones'        => $zones,
-            'profileZones' => $profileZones,
-        ]);
+        $response->getBody()->write(json_encode($profile));
+        return $response->withHeader('Content-Type', 'application/json');
     }
 
     public function store(Request $request, Response $response): Response
     {
-        $body = (array) $request->getParsedBody();
-        $name = trim($body['name'] ?? '');
-        $desc = trim($body['description'] ?? '');
+        $body          = (array) $request->getParsedBody();
+        $name          = trim($body['name'] ?? '');
+        $desc          = trim($body['description'] ?? '');
+        $zoneId        = ($body['zone_id'] ?? '') !== '' ? (int) $body['zone_id'] : null;
+        $allowedIps    = trim($body['custom_allowed_ips'] ?? '');
+        $dns           = trim($body['dns'] ?? '');
+        $isGateway     = isset($body['is_gateway']) ? 1 : 0;
+        $gatewaySubnet = trim($body['gateway_subnet'] ?? '');
 
         if (!$name) {
             $_SESSION['flash_error'] = 'Profile name is required.';
@@ -58,9 +71,10 @@ class ProfilesController
         }
 
         try {
-            $this->db->execute("INSERT INTO profiles (name, description) VALUES (?, ?)", [$name, $desc ?: null]);
-            $profileId = (int) $this->db->lastInsertId();
-            $this->syncZoneAccess($profileId, $body);
+            $this->db->execute("
+                INSERT INTO profiles (name, description, zone_id, custom_allowed_ips, dns, is_gateway, gateway_subnet)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            ", [$name, $desc ?: null, $zoneId, $allowedIps ?: null, $dns ?: null, $isGateway, $gatewaySubnet ?: null]);
             $_SESSION['flash_success'] = "Profile \"{$name}\" created.";
         } catch (\Exception $e) {
             $_SESSION['flash_error'] = 'A profile with that name already exists.';
@@ -71,9 +85,14 @@ class ProfilesController
 
     public function update(Request $request, Response $response, string $id): Response
     {
-        $body = (array) $request->getParsedBody();
-        $name = trim($body['name'] ?? '');
-        $desc = trim($body['description'] ?? '');
+        $body          = (array) $request->getParsedBody();
+        $name          = trim($body['name'] ?? '');
+        $desc          = trim($body['description'] ?? '');
+        $zoneId        = ($body['zone_id'] ?? '') !== '' ? (int) $body['zone_id'] : null;
+        $allowedIps    = trim($body['custom_allowed_ips'] ?? '');
+        $dns           = trim($body['dns'] ?? '');
+        $isGateway     = isset($body['is_gateway']) ? 1 : 0;
+        $gatewaySubnet = trim($body['gateway_subnet'] ?? '');
 
         if (!$name) {
             $_SESSION['flash_error'] = 'Profile name is required.';
@@ -81,9 +100,10 @@ class ProfilesController
         }
 
         try {
-            $this->db->execute("UPDATE profiles SET name = ?, description = ? WHERE id = ?", [$name, $desc ?: null, $id]);
-            $this->db->execute("DELETE FROM profile_zone_access WHERE profile_id = ?", [$id]);
-            $this->syncZoneAccess($id, $body);
+            $this->db->execute("
+                UPDATE profiles SET name = ?, description = ?, zone_id = ?, custom_allowed_ips = ?, dns = ?, is_gateway = ?, gateway_subnet = ?
+                WHERE id = ?
+            ", [$name, $desc ?: null, $zoneId, $allowedIps ?: null, $dns ?: null, $isGateway, $gatewaySubnet ?: null, (int) $id]);
             $_SESSION['flash_success'] = "Profile updated.";
         } catch (\Exception $e) {
             $_SESSION['flash_error'] = 'A profile with that name already exists.';
@@ -94,26 +114,11 @@ class ProfilesController
 
     public function destroy(Request $request, Response $response, string $id): Response
     {
-        $profile = $this->db->queryOne("SELECT * FROM profiles WHERE id = ?", [$id]);
+        $profile = $this->db->queryOne("SELECT * FROM profiles WHERE id = ?", [(int) $id]);
         if ($profile) {
-            $this->db->execute("DELETE FROM profiles WHERE id = ?", [$id]);
+            $this->db->execute("DELETE FROM profiles WHERE id = ?", [(int) $id]);
             $_SESSION['flash_success'] = "Profile \"{$profile['name']}\" deleted.";
         }
         return $response->withHeader('Location', '/profiles')->withStatus(302);
-    }
-
-    private function syncZoneAccess(int $profileId, array $body): void
-    {
-        $zoneIds     = (array) ($body['zone_ids'] ?? []);
-        $accessTypes = (array) ($body['access_types'] ?? []);
-
-        foreach ($zoneIds as $zoneId) {
-            $zoneId     = (int) $zoneId;
-            $accessType = $accessTypes[$zoneId] ?? 'full';
-            $this->db->execute(
-                "INSERT OR REPLACE INTO profile_zone_access (profile_id, zone_id, access_type) VALUES (?, ?, ?)",
-                [$profileId, $zoneId, $accessType]
-            );
-        }
     }
 }

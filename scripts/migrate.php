@@ -38,10 +38,15 @@ CREATE TABLE IF NOT EXISTS zones (
 );
 
 CREATE TABLE IF NOT EXISTS profiles (
-    id          INTEGER PRIMARY KEY AUTOINCREMENT,
-    name        TEXT    NOT NULL UNIQUE,
-    description TEXT,
-    created_at  TEXT    NOT NULL DEFAULT (datetime('now'))
+    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+    name              TEXT    NOT NULL UNIQUE,
+    description       TEXT,
+    zone_id           INTEGER REFERENCES zones(id),
+    custom_allowed_ips TEXT,
+    dns               TEXT,
+    is_gateway        INTEGER NOT NULL DEFAULT 0,
+    gateway_subnet    TEXT,
+    created_at        TEXT    NOT NULL DEFAULT (datetime('now'))
 );
 
 CREATE TABLE IF NOT EXISTS profile_zone_access (
@@ -95,6 +100,11 @@ CREATE TABLE IF NOT EXISTS download_tokens (
 // Additive migrations for existing databases
 $alterations = [
     "ALTER TABLE acl_rules ADD COLUMN dst_port TEXT",
+    "ALTER TABLE profiles ADD COLUMN zone_id INTEGER REFERENCES zones(id)",
+    "ALTER TABLE profiles ADD COLUMN custom_allowed_ips TEXT",
+    "ALTER TABLE profiles ADD COLUMN dns TEXT",
+    "ALTER TABLE profiles ADD COLUMN is_gateway INTEGER NOT NULL DEFAULT 0",
+    "ALTER TABLE profiles ADD COLUMN gateway_subnet TEXT",
 ];
 foreach ($alterations as $sql) {
     try { $pdo->exec($sql); } catch (\Exception $e) { /* column already exists */ }

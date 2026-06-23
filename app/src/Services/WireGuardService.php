@@ -52,6 +52,11 @@ class WireGuardService
         );
         if (!$peer) throw new \RuntimeException("Peer not found");
 
+        $profile = null;
+        if ($peer['profile_id']) {
+            $profile = $this->db->queryOne("SELECT * FROM profiles WHERE id = ?", [(int) $peer['profile_id']]);
+        }
+
         $serverPublicKey = $this->db->queryOne("SELECT value FROM settings WHERE key = 'server_public_key'")['value'] ?? '';
         $serverWanIp     = $this->db->queryOne("SELECT value FROM settings WHERE key = 'server_public_ip'")['value'] ?? '';
         $serverLanIp     = $this->db->queryOne("SELECT value FROM settings WHERE key = 'server_lan_ip'")['value'] ?? '';
@@ -61,8 +66,8 @@ class WireGuardService
         [$network, $prefix] = explode('/', $peer['zone_subnet']);
         $clientAddress = $peer['vpn_ip'] . '/' . $prefix;
 
-        $allowedIps = $peer['custom_allowed_ips'] ?: '172.16.0.0/16';
-        $dns        = $peer['dns'] ?? '';
+        $allowedIps = $peer['custom_allowed_ips'] ?? ($profile['custom_allowed_ips'] ?? null) ?? '172.16.0.0/16';
+        $dns        = $peer['dns'] ?? ($profile['dns'] ?? '') ?? '';
 
         $conf  = "[Interface]\n";
         $conf .= "PrivateKey = {$peer['private_key']}\n";
@@ -100,9 +105,16 @@ class WireGuardService
 
         $peers = $this->db->query("SELECT * FROM peers WHERE enabled = 1");
         foreach ($peers as $peer) {
+            $profile = null;
+            if ($peer['profile_id']) {
+                $profile = $this->db->queryOne("SELECT * FROM profiles WHERE id = ?", [(int) $peer['profile_id']]);
+            }
+            $isGateway     = $peer['is_gateway'] ?? ($profile['is_gateway'] ?? 0);
+            $gatewaySubnet = $peer['gateway_subnet'] ?? ($profile['gateway_subnet'] ?? null);
+
             $allowedIps = $peer['vpn_ip'] . '/32';
-            if ($peer['is_gateway'] && $peer['gateway_subnet']) {
-                $allowedIps .= ', ' . $peer['gateway_subnet'];
+            if ($isGateway && $gatewaySubnet) {
+                $allowedIps .= ', ' . $gatewaySubnet;
             }
 
             $conf .= "[Peer]\n";
@@ -110,7 +122,7 @@ class WireGuardService
             $conf .= "PublicKey = {$peer['public_key']}\n";
             $conf .= "PresharedKey = {$peer['preshared_key']}\n";
             $conf .= "AllowedIPs = {$allowedIps}\n";
-            if ($peer['is_gateway']) {
+            if ($isGateway) {
                 $conf .= "PersistentKeepalive = 25\n";
             }
             $conf .= "\n";

@@ -42,15 +42,28 @@ class PeersController
 
     public function store(Request $request, Response $response): Response
     {
-        $body    = (array) $request->getParsedBody();
-        $name    = trim($body['name'] ?? '');
-        $zoneId  = (int) ($body['zone_id'] ?? 0);
+        $body      = (array) $request->getParsedBody();
+        $name      = trim($body['name'] ?? '');
         $profileId = ($body['profile_id'] ?? '') !== '' ? (int) $body['profile_id'] : null;
-        $dns     = trim($body['dns'] ?? '');
-        $notes   = trim($body['notes'] ?? '');
-        $isGateway     = isset($body['is_gateway']) ? 1 : 0;
+        $notes     = trim($body['notes'] ?? '');
+
+        $profile = null;
+        if ($profileId) {
+            $profile = $this->db->queryOne("SELECT * FROM profiles WHERE id = ?", [$profileId]);
+        }
+
+        $zoneId        = (int) ($body['zone_id'] ?? ($profile['zone_id'] ?? 0));
+        $dns           = trim($body['dns'] ?? '');
+        $isGateway     = isset($body['is_gateway']) ? 1 : ($profile ? (int) ($profile['is_gateway'] ?? 0) : 0);
         $gatewaySubnet = trim($body['gateway_subnet'] ?? '');
         $customAllowed = trim($body['custom_allowed_ips'] ?? '');
+
+        if ($profile) {
+            $dns           = $dns ?: '';
+            $isGateway     = isset($body['is_gateway']) ? 1 : (int) ($profile['is_gateway'] ?? 0);
+            $gatewaySubnet = $gatewaySubnet ?: '';
+            $customAllowed = $customAllowed ?: '';
+        }
 
         if (!$name || !$zoneId) {
             $_SESSION['flash_error'] = 'Name and zone are required.';

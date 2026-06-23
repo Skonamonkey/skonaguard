@@ -12,11 +12,21 @@
 <div class="alert alert-success" id="flash-msg">{{ session.flash_success }}</div>
 {% endif %}
 
+<div class="card" style="margin-bottom:16px; background:var(--surface-raised); border-color:var(--border-subtle)">
+    <div class="card-body" style="padding:14px 20px">
+        <p style="font-size:var(--font-sm); color:var(--text-secondary); margin:0">
+            <strong style="color:var(--color-info)">How profiles work:</strong>
+            A profile is a peer config template — zone, allowed IPs, gateway settings. Select a profile when adding a peer and the settings are applied automatically.
+            Updating a profile affects all linked peers on their <em>next config download</em> — no manual re-configuration needed.
+        </p>
+    </div>
+</div>
+
 <div class="card">
     <div class="card-header">
         <div class="card-title">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-            Access Profiles
+            Peer Profiles
         </div>
         <button class="btn btn-primary btn-sm" onclick="openModal('modal-add')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -28,27 +38,41 @@
             <thead>
                 <tr>
                     <th>Name</th>
-                    <th>Description</th>
-                    <th>Zone Access</th>
+                    <th>Zone</th>
+                    <th>Allowed IPs</th>
+                    <th>Gateway</th>
                     <th>Peers</th>
-                    <th>Created</th>
                     <th></th>
                 </tr>
             </thead>
             <tbody>
             {% for profile in profiles %}
                 <tr>
-                    <td><strong>{{ profile.name }}</strong></td>
-                    <td style="color:var(--text-secondary)">{{ profile.description ?? '—' }}</td>
                     <td>
-                        {% if profileZones[profile.id] is defined and profileZones[profile.id]|length > 0 %}
-                            {% for pz in profileZones[profile.id] %}
-                                <span class="badge {% if pz.access_type == 'full' %}badge-active{% else %}badge-info{% endif %}" style="margin:2px">
-                                    {{ pz.name }}{% if pz.access_type != 'full' %} ({{ pz.access_type }}){% endif %}
-                                </span>
-                            {% endfor %}
+                        <strong>{{ profile.name }}</strong>
+                        {% if profile.description %}<br><small style="color:var(--text-muted)">{{ profile.description }}</small>{% endif %}
+                    </td>
+                    <td>
+                        {% if profile.zone_name %}
+                            <span class="badge badge-info">{{ profile.zone_name }}</span>
+                            <br><small style="color:var(--text-muted)">{{ profile.zone_subnet }}</small>
                         {% else %}
-                            <span style="color:var(--text-muted)">No zones</span>
+                            <span style="color:var(--text-muted)">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <code style="font-size:0.75rem; color:var(--text-secondary)">
+                            {{ profile.custom_allowed_ips ?? '172.16.0.0/16 (default)' }}
+                        </code>
+                    </td>
+                    <td>
+                        {% if profile.is_gateway %}
+                            <span class="badge badge-active"><span class="dot dot-green"></span> Gateway</span>
+                            {% if profile.gateway_subnet %}
+                            <br><small style="color:var(--text-muted)">{{ profile.gateway_subnet }}</small>
+                            {% endif %}
+                        {% else %}
+                            <span style="color:var(--text-muted)">—</span>
                         {% endif %}
                     </td>
                     <td>
@@ -56,10 +80,9 @@
                             {{ profile.peer_count }} peer{{ profile.peer_count != 1 ? 's' : '' }}
                         </span>
                     </td>
-                    <td style="color:var(--text-muted)">{{ profile.created_at|slice(0,10) }}</td>
                     <td style="text-align:right; white-space:nowrap">
                         <button class="btn-icon" title="Edit"
-                            onclick='openEditModal({{ profile.id }}, {{ profile.name|json_encode }}, {{ (profile.description ?? "")|json_encode }}, {{ profileZones[profile.id]|json_encode }})'>
+                            onclick='openEditModal({{ profile|json_encode }})'>
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                         </button>
                         <button class="btn-icon danger" title="Delete"
@@ -71,7 +94,7 @@
             {% else %}
                 <tr>
                     <td colspan="6" style="text-align:center; color:var(--text-muted); padding:40px 0;">
-                        No profiles yet. Profiles let you assign zone access to groups of peers.
+                        No profiles yet. Create one to speed up adding peers with the same settings.
                     </td>
                 </tr>
             {% endfor %}
@@ -80,9 +103,68 @@
     </div>
 </div>
 
+{% macro profile_fields(prefix, profile, zones) %}
+<div class="form-row" style="margin-bottom:16px">
+    <div class="form-group">
+        <label>Profile Name</label>
+        <input type="text" name="name" id="{{ prefix }}-name" placeholder="e.g. Office Staff" required value="{{ profile.name ?? '' }}">
+    </div>
+    <div class="form-group">
+        <label>Description <span style="color:var(--text-muted)">(optional)</span></label>
+        <input type="text" name="description" id="{{ prefix }}-desc" placeholder="Short description" value="{{ profile.description ?? '' }}">
+    </div>
+</div>
+
+<div style="background:var(--surface-input); border:1px solid var(--border-input); border-radius:var(--radius-sm); padding:16px; margin-bottom:16px">
+    <p style="font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-muted); margin:0 0 12px">Default Peer Settings</p>
+
+    <div class="form-group" style="margin-bottom:12px">
+        <label>Zone <span style="color:var(--text-muted)">(peers in this profile will be assigned to this zone)</span></label>
+        <select name="zone_id" id="{{ prefix }}-zone">
+            <option value="">Select zone…</option>
+            {% for zone in zones %}
+            <option value="{{ zone.id }}" {% if (profile.zone_id ?? '') == zone.id %}selected{% endif %}>{{ zone.name }} — {{ zone.subnet }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="form-group" style="margin-bottom:12px">
+        <label>Allowed IPs <span style="color:var(--text-muted)">(what traffic the client routes through VPN)</span></label>
+        <input type="text" name="custom_allowed_ips" id="{{ prefix }}-allowed" value="{{ profile.custom_allowed_ips ?? '' }}" placeholder="172.16.0.0/16 (leave blank for full VPN subnet)">
+    </div>
+
+    <div class="form-check" style="margin-bottom:10px">
+        <input type="checkbox" id="{{ prefix }}-is-gateway" name="is_gateway" value="1"
+            onchange="document.getElementById('{{ prefix }}-gw-fields').style.display=this.checked?'block':'none'"
+            {% if profile.is_gateway ?? false %}checked{% endif %}>
+        <label for="{{ prefix }}-is-gateway">Peers using this profile are site gateways</label>
+    </div>
+    <div id="{{ prefix }}-gw-fields" style="display:{{ (profile.is_gateway ?? false) ? 'block' : 'none' }}; padding-left:24px">
+        <div class="form-group">
+            <label>Subnets to Advertise <span style="color:var(--text-muted)">(comma-separated CIDR)</span></label>
+            <input type="text" name="gateway_subnet" id="{{ prefix }}-gw-subnet" value="{{ profile.gateway_subnet ?? '' }}" placeholder="e.g. 192.168.99.0/24, 10.0.0.0/24">
+        </div>
+    </div>
+
+    <div style="margin-top:12px">
+        <button type="button" class="advanced-toggle" onclick="toggleAdvanced('{{ prefix }}-adv')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px"><polyline points="6 9 12 15 18 9"/></svg>
+            Advanced options
+        </button>
+        <div id="{{ prefix }}-adv" style="display:none; margin-top:10px">
+            <div class="form-group">
+                <label>DNS Override <span style="color:var(--text-muted)">(full-tunnel mode only)</span></label>
+                <input type="text" name="dns" id="{{ prefix }}-dns" value="{{ profile.dns ?? '' }}" placeholder="e.g. 1.1.1.1 — leave blank for normal use">
+                <small style="color:var(--text-muted)">Only set this if routing all internet traffic through the VPN.</small>
+            </div>
+        </div>
+    </div>
+</div>
+{% endmacro %}
+
 <!-- Add Profile Modal -->
 <div class="modal-backdrop" id="modal-add">
-    <div class="modal" style="max-width:560px">
+    <div class="modal" style="max-width:580px">
         <div class="modal-header">
             <span class="modal-title">Add Profile</span>
             <button class="modal-close" onclick="closeModal('modal-add')">
@@ -91,31 +173,7 @@
         </div>
         <form method="POST" action="/profiles">
             <div class="modal-body">
-                <div class="form-row" style="margin-bottom:16px">
-                    <div class="form-group">
-                        <label>Profile Name</label>
-                        <input type="text" name="name" placeholder="e.g. Office Staff" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Description <span style="color:var(--text-muted)">(optional)</span></label>
-                        <input type="text" name="description" placeholder="Short description">
-                    </div>
-                </div>
-                <label style="display:block; margin-bottom:8px; font-size:var(--font-sm); font-weight:600; color:var(--text-secondary)">Zone Access</label>
-                {% for zone in zones %}
-                <div style="display:flex; align-items:center; gap:12px; padding:8px 0; border-bottom:1px solid var(--border-subtle)">
-                    <input type="checkbox" name="zone_ids[]" value="{{ zone.id }}" id="add-zone-{{ zone.id }}"
-                        onchange="toggleAccessType(this, 'add-at-{{ zone.id }}')">
-                    <label for="add-zone-{{ zone.id }}" style="flex:1; margin:0; cursor:pointer; font-weight:500">
-                        {{ zone.name }} <small style="color:var(--text-muted)">({{ zone.subnet }})</small>
-                    </label>
-                    <select name="access_types[{{ zone.id }}]" id="add-at-{{ zone.id }}" disabled style="width:130px">
-                        <option value="full">Full Access</option>
-                        <option value="established">Inbound Only</option>
-                        <option value="readonly">Read Only</option>
-                    </select>
-                </div>
-                {% endfor %}
+                {{ _self.profile_fields('add', {}, zones) }}
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-ghost" onclick="closeModal('modal-add')">Cancel</button>
@@ -127,7 +185,7 @@
 
 <!-- Edit Profile Modal -->
 <div class="modal-backdrop" id="modal-edit">
-    <div class="modal" style="max-width:560px">
+    <div class="modal" style="max-width:580px">
         <div class="modal-header">
             <span class="modal-title">Edit Profile</span>
             <button class="modal-close" onclick="closeModal('modal-edit')">
@@ -146,21 +204,54 @@
                         <input type="text" id="edit-desc" name="description">
                     </div>
                 </div>
-                <label style="display:block; margin-bottom:8px; font-size:var(--font-sm); font-weight:600; color:var(--text-secondary)">Zone Access</label>
-                {% for zone in zones %}
-                <div style="display:flex; align-items:center; gap:12px; padding:8px 0; border-bottom:1px solid var(--border-subtle)">
-                    <input type="checkbox" name="zone_ids[]" value="{{ zone.id }}" id="edit-zone-{{ zone.id }}"
-                        onchange="toggleAccessType(this, 'edit-at-{{ zone.id }}')">
-                    <label for="edit-zone-{{ zone.id }}" style="flex:1; margin:0; cursor:pointer; font-weight:500">
-                        {{ zone.name }} <small style="color:var(--text-muted)">({{ zone.subnet }})</small>
-                    </label>
-                    <select name="access_types[{{ zone.id }}]" id="edit-at-{{ zone.id }}" disabled style="width:130px">
-                        <option value="full">Full Access</option>
-                        <option value="established">Inbound Only</option>
-                        <option value="readonly">Read Only</option>
-                    </select>
+
+                <div style="background:var(--surface-input); border:1px solid var(--border-input); border-radius:var(--radius-sm); padding:16px; margin-bottom:16px">
+                    <p style="font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-muted); margin:0 0 12px">Default Peer Settings</p>
+
+                    <div class="form-group" style="margin-bottom:12px">
+                        <label>Zone</label>
+                        <select id="edit-zone" name="zone_id">
+                            <option value="">Select zone…</option>
+                            {% for zone in zones %}
+                            <option value="{{ zone.id }}">{{ zone.name }} — {{ zone.subnet }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom:12px">
+                        <label>Allowed IPs</label>
+                        <input type="text" id="edit-allowed" name="custom_allowed_ips" placeholder="172.16.0.0/16 (leave blank for full VPN subnet)">
+                    </div>
+
+                    <div class="form-check" style="margin-bottom:10px">
+                        <input type="checkbox" id="edit-is-gateway" name="is_gateway" value="1"
+                            onchange="document.getElementById('edit-gw-fields').style.display=this.checked?'block':'none'">
+                        <label for="edit-is-gateway">Peers using this profile are site gateways</label>
+                    </div>
+                    <div id="edit-gw-fields" style="display:none; padding-left:24px">
+                        <div class="form-group">
+                            <label>Subnets to Advertise</label>
+                            <input type="text" id="edit-gw-subnet" name="gateway_subnet" placeholder="e.g. 192.168.99.0/24, 10.0.0.0/24">
+                        </div>
+                    </div>
+
+                    <div style="margin-top:12px">
+                        <button type="button" class="advanced-toggle" onclick="toggleAdvanced('edit-adv')">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px"><polyline points="6 9 12 15 18 9"/></svg>
+                            Advanced options
+                        </button>
+                        <div id="edit-adv" style="display:none; margin-top:10px">
+                            <div class="form-group">
+                                <label>DNS Override <span style="color:var(--text-muted)">(full-tunnel mode only)</span></label>
+                                <input type="text" id="edit-dns" name="dns" placeholder="e.g. 1.1.1.1 — leave blank for normal use">
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                {% endfor %}
+
+                <p style="font-size:0.75rem; color:var(--color-warning); margin:0">
+                    <strong>Note:</strong> Changes to Allowed IPs, DNS, and gateway settings apply to all linked peers on their next config download.
+                </p>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-ghost" onclick="closeModal('modal-edit')">Cancel</button>
@@ -202,32 +293,24 @@ document.querySelectorAll('.modal-backdrop').forEach(b => {
     b.addEventListener('click', e => { if (e.target === b) b.classList.remove('open'); });
 });
 
-function toggleAccessType(checkbox, selectId) {
-    document.getElementById(selectId).disabled = !checkbox.checked;
+function toggleAdvanced(id) {
+    const el = document.getElementById(id);
+    if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
 }
 
-function openEditModal(id, name, desc, profileZones) {
-    document.getElementById('edit-name').value = name;
-    document.getElementById('edit-desc').value = desc;
-    document.getElementById('form-edit').action = '/profiles/' + id;
+function openEditModal(profile) {
+    document.getElementById('edit-name').value      = profile.name ?? '';
+    document.getElementById('edit-desc').value      = profile.description ?? '';
+    document.getElementById('edit-zone').value      = profile.zone_id ?? '';
+    document.getElementById('edit-allowed').value   = profile.custom_allowed_ips ?? '';
+    document.getElementById('edit-dns').value       = profile.dns ?? '';
 
-    const activeZones = {};
-    (profileZones || []).forEach(pz => { activeZones[pz.zone_id ?? pz.id] = pz.access_type; });
+    const gwCb = document.getElementById('edit-is-gateway');
+    gwCb.checked = !!profile.is_gateway;
+    document.getElementById('edit-gw-fields').style.display = profile.is_gateway ? 'block' : 'none';
+    document.getElementById('edit-gw-subnet').value = profile.gateway_subnet ?? '';
 
-    document.querySelectorAll('[id^="edit-zone-"]').forEach(cb => {
-        const zoneId = cb.value;
-        const atSel  = document.getElementById('edit-at-' + zoneId);
-        if (activeZones[zoneId] !== undefined) {
-            cb.checked      = true;
-            atSel.disabled  = false;
-            atSel.value     = activeZones[zoneId];
-        } else {
-            cb.checked      = false;
-            atSel.disabled  = true;
-            atSel.value     = 'full';
-        }
-    });
-
+    document.getElementById('form-edit').action = '/profiles/' + profile.id;
     openModal('modal-edit');
 }
 

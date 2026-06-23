@@ -138,60 +138,78 @@
                 <div class="form-row" style="margin-bottom:16px">
                     <div class="form-group">
                         <label>Peer Name</label>
-                        <input type="text" name="name" placeholder="e.g. Mike's Office PC" required>
+                        <input type="text" name="name" id="add-peer-name" placeholder="e.g. Mike's Office PC" required>
                     </div>
                     <div class="form-group">
+                        <label>Notes <span style="color:var(--text-muted)">(optional)</span></label>
+                        <input type="text" name="notes" placeholder="Short description">
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom:16px">
+                    <label>Profile <span style="color:var(--text-muted)">(optional — applies zone and config settings automatically)</span></label>
+                    <select name="profile_id" id="add-profile-select" onchange="onProfileChange(this.value)">
+                        <option value="">None — configure manually below</option>
+                        {% for profile in profiles %}
+                        <option value="{{ profile.id }}">{{ profile.name }}{% if profile.zone_name %} — {{ profile.zone_name }}{% endif %}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Profile summary shown when a profile is selected -->
+                <div id="add-profile-summary" style="display:none; margin-bottom:16px; padding:12px 14px; background:var(--surface-raised); border:1px solid var(--color-info); border-radius:var(--radius-sm); font-size:var(--font-sm); color:var(--text-secondary)">
+                    <strong style="color:var(--color-info)">Profile applied:</strong>
+                    <span id="add-profile-summary-text"></span>
+                    <br><small style="color:var(--text-muted)">Config settings inherited from profile. Edit the profile to change them for all linked peers.</small>
+                </div>
+
+                <!-- Manual config fields — hidden when profile is selected -->
+                <div id="add-manual-config">
+                    <div class="form-group" style="margin-bottom:16px">
                         <label>Zone</label>
-                        <select name="zone_id" required>
+                        <select id="add-zone-select" onchange="document.getElementById('add-zone-hidden').value=this.value">
                             <option value="">Select zone…</option>
                             {% for zone in zones %}
                             <option value="{{ zone.id }}">{{ zone.name }} ({{ zone.subnet }})</option>
                             {% endfor %}
                         </select>
                     </div>
-                </div>
-                <div class="form-group" style="margin-bottom:16px">
-                    <label>Profile <span style="color:var(--text-muted)">(optional)</span></label>
-                    <select name="profile_id">
-                        <option value="">None</option>
-                        {% for profile in profiles %}
-                        <option value="{{ profile.id }}">{{ profile.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div style="margin-bottom:16px">
-                    <button type="button" class="advanced-toggle" onclick="toggleAdvanced('add-advanced')">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px"><polyline points="6 9 12 15 18 9"/></svg>
-                        Advanced options
-                    </button>
-                    <div id="add-advanced" style="display:none; margin-top:10px; padding:14px; background:var(--surface-input); border:1px solid var(--border-input); border-radius:var(--radius-sm)">
-                        <div class="form-group">
-                            <label>DNS Override <span style="color:var(--text-muted)">(full-tunnel mode only)</span></label>
-                            <input type="text" name="dns" placeholder="e.g. 1.1.1.1 — leave blank for normal use">
-                            <small style="color:var(--text-muted)">Only set this if routing all internet traffic through the VPN. Leave blank for site-to-site / selective access.</small>
+
+                    <div class="form-group" style="margin-bottom:16px">
+                        <label>Allowed IPs <span style="color:var(--text-muted)">(what traffic the client routes through VPN)</span></label>
+                        <input type="text" name="custom_allowed_ips" id="add-allowed-ips" placeholder="172.16.0.0/16 (leave blank for full VPN subnet)">
+                    </div>
+
+                    <div style="background:var(--surface-input); border:1px solid var(--border-input); border-radius:var(--radius-sm); padding:14px; margin-bottom:16px">
+                        <div class="form-check" style="margin-bottom:10px">
+                            <input type="checkbox" id="add-is-gateway" name="is_gateway" value="1" onchange="toggleGateway('add')">
+                            <label for="add-is-gateway">This peer is a site gateway (routes subnet traffic)</label>
+                        </div>
+                        <div id="add-gateway-fields" style="display:none">
+                            <div class="form-group">
+                                <label>Subnets to Advertise <span style="color:var(--text-muted)">(comma-separated CIDR)</span></label>
+                                <input type="text" name="gateway_subnet" placeholder="e.g. 192.168.99.0/24, 10.0.0.0/24">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom:16px">
+                        <button type="button" class="advanced-toggle" onclick="toggleAdvanced('add-advanced')">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px"><polyline points="6 9 12 15 18 9"/></svg>
+                            Advanced options
+                        </button>
+                        <div id="add-advanced" style="display:none; margin-top:10px; padding:14px; background:var(--surface-input); border:1px solid var(--border-input); border-radius:var(--radius-sm)">
+                            <div class="form-group">
+                                <label>DNS Override <span style="color:var(--text-muted)">(full-tunnel mode only)</span></label>
+                                <input type="text" name="dns" id="add-dns" placeholder="e.g. 1.1.1.1 — leave blank for normal use">
+                                <small style="color:var(--text-muted)">Only set this if routing all internet traffic through the VPN. Leave blank for site-to-site / selective access.</small>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="form-group" style="margin-bottom:16px">
-                    <label>Allowed IPs <span style="color:var(--text-muted)">(what traffic the client routes through VPN)</span></label>
-                    <input type="text" name="custom_allowed_ips" placeholder="172.16.0.0/16 (leave blank for full VPN subnet)">
-                </div>
-                <div class="form-group" style="margin-bottom:16px">
-                    <label>Notes <span style="color:var(--text-muted)">(optional)</span></label>
-                    <input type="text" name="notes" placeholder="Short description">
-                </div>
-                <div style="background:var(--surface-input); border:1px solid var(--border-input); border-radius:var(--radius-sm); padding:14px; margin-bottom:16px">
-                    <div class="form-check" style="margin-bottom:10px">
-                        <input type="checkbox" id="add-is-gateway" name="is_gateway" value="1" onchange="toggleGateway('add')">
-                        <label for="add-is-gateway">This peer is a site gateway (routes subnet traffic)</label>
-                    </div>
-                    <div id="add-gateway-fields" style="display:none">
-                        <div class="form-group">
-                            <label>Subnets to Advertise <span style="color:var(--text-muted)">(comma-separated CIDR)</span></label>
-                            <input type="text" name="gateway_subnet" placeholder="e.g. 192.168.99.0/24, 10.0.0.0/24">
-                        </div>
-                    </div>
-                </div>
+
+                <!-- Zone hidden field used when profile supplies zone -->
+                <input type="hidden" name="zone_id" id="add-zone-hidden" value="">
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-ghost" onclick="closeModal('modal-add')">Cancel</button>
@@ -390,6 +408,47 @@ function toggleGateway(prefix) {
     const cb     = document.getElementById(prefix + '-is-gateway');
     const fields = document.getElementById(prefix + '-gateway-fields');
     fields.style.display = cb.checked ? 'block' : 'none';
+}
+
+function onProfileChange(profileId) {
+    const manualConfig  = document.getElementById('add-manual-config');
+    const summary       = document.getElementById('add-profile-summary');
+    const summaryText   = document.getElementById('add-profile-summary-text');
+    const zoneSelect    = document.getElementById('add-zone-select');
+    const zoneHidden    = document.getElementById('add-zone-hidden');
+
+    if (!profileId) {
+        manualConfig.style.display = 'block';
+        summary.style.display = 'none';
+        zoneSelect.disabled = false;
+        zoneHidden.value = zoneSelect.value;
+        return;
+    }
+
+    fetch('/profiles/' + profileId + '/data')
+        .then(r => r.json())
+        .then(p => {
+            const parts = [];
+            if (p.zone_name)          parts.push('Zone: ' + p.zone_name + ' (' + (p.zone_subnet || '') + ')');
+            if (p.custom_allowed_ips) parts.push('Allowed IPs: ' + p.custom_allowed_ips);
+            else                      parts.push('Allowed IPs: 172.16.0.0/16 (default)');
+            if (p.is_gateway)         parts.push('Gateway' + (p.gateway_subnet ? ': ' + p.gateway_subnet : ''));
+            if (p.dns)                parts.push('DNS: ' + p.dns);
+
+            summaryText.textContent = parts.join(' · ');
+            summary.style.display = 'block';
+            manualConfig.style.display = 'none';
+
+            zoneSelect.required = false;
+            zoneSelect.disabled = true;
+            zoneHidden.value = p.zone_id || '';
+        })
+        .catch(() => {
+            manualConfig.style.display = 'block';
+            summary.style.display = 'none';
+            zoneSelect.disabled = false;
+            zoneHidden.value = zoneSelect.value;
+        });
 }
 
 function openEditModal(peer) {

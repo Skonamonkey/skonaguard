@@ -53,6 +53,7 @@ $app->group('', function (\Slim\Routing\RouteCollectorProxy $group) {
     $group->get('/peers/{id:[0-9]+}/qr', [PeersController::class, 'qrCode']);
 
     $group->get('/profiles', [ProfilesController::class, 'index']);
+    $group->get('/profiles/{id:[0-9]+}/data', [ProfilesController::class, 'data']);
     $group->post('/profiles', [ProfilesController::class, 'store']);
     $group->post('/profiles/{id:[0-9]+}', [ProfilesController::class, 'update']);
     $group->post('/profiles/{id:[0-9]+}/delete', [ProfilesController::class, 'destroy']);
