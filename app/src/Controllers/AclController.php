@@ -8,6 +8,7 @@ use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
 use SkonaGuard\Models\Database;
+use SkonaGuard\Services\WireGuardService;
 
 class AclController
 {
@@ -20,7 +21,8 @@ class AclController
 
     public function __construct(
         private Twig $view,
-        private Database $db
+        private Database $db,
+        private WireGuardService $wg
     ) {}
 
     public function index(Request $request, Response $response): Response
@@ -67,6 +69,7 @@ class AclController
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ", [$name, $srcZoneId, $dstZoneId, $srcIp ?: null, $dstIp ?: null, $action, $ruleType, $priority]);
 
+        $this->wg->syncAcl();
         $_SESSION['flash_success'] = "Rule \"{$name}\" created.";
         return $response->withHeader('Location', '/acls')->withStatus(302);
     }
@@ -93,6 +96,7 @@ class AclController
             WHERE id = ?
         ", [$name, $srcZoneId, $dstZoneId, $srcIp ?: null, $dstIp ?: null, $action, $ruleType, $priority, (int) $id]);
 
+        $this->wg->syncAcl();
         $_SESSION['flash_success'] = "Rule updated.";
         return $response->withHeader('Location', '/acls')->withStatus(302);
     }
@@ -102,6 +106,7 @@ class AclController
         $rule = $this->db->queryOne("SELECT * FROM acl_rules WHERE id = ?", [(int) $id]);
         if ($rule) {
             $this->db->execute("DELETE FROM acl_rules WHERE id = ?", [(int) $id]);
+            $this->wg->syncAcl();
             $_SESSION['flash_success'] = "Rule \"{$rule['name']}\" deleted.";
         }
         return $response->withHeader('Location', '/acls')->withStatus(302);

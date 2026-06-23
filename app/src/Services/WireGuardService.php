@@ -95,7 +95,7 @@ class WireGuardService
         $conf .= "Address = {$wgSubnetHub}/{$prefix}\n";
         $conf .= "ListenPort = {$wgPort}\n";
         $conf .= "PostUp = iptables -A FORWARD -i wg0 -j ACCEPT; iptables -A FORWARD -o wg0 -j ACCEPT; iptables -t nat -A POSTROUTING -o {$eth} -j MASQUERADE\n";
-        $conf .= "PostDown = iptables -D FORWARD -i wg0 -j ACCEPT; iptables -D FORWARD -o wg0 -j ACCEPT; iptables -t nat -D POSTROUTING -o {$eth} -j MASQUERADE\n";
+        $conf .= "PostDown = iptables -D FORWARD -i wg0 -j ACCEPT; iptables -D FORWARD -o wg0 -j ACCEPT; iptables -t nat -D POSTROUTING -o {$eth} -j MASQUERADE; iptables -D FORWARD -i wg0 -j SKONAGUARD 2>/dev/null; iptables -F SKONAGUARD 2>/dev/null; iptables -X SKONAGUARD 2>/dev/null\n";
         $conf .= "\n";
 
         $peers = $this->db->query("SELECT * FROM peers WHERE enabled = 1");
@@ -132,7 +132,85 @@ class WireGuardService
 
         unlink($tmp);
 
+        $this->syncAcl();
+
         return true;
+    }
+
+    public function syncAcl(): void
+    {
+        $enforcement = $this->db->queryOne("SELECT value FROM settings WHERE key = 'acl_enforcement'")['value'] ?? '0';
+
+        if ($enforcement !== '1') {
+            $this->teardownAclChain();
+            return;
+        }
+
+        $this->setupAclChain();
+        shell_exec('iptables -F SKONAGUARD 2>/dev/null');
+
+        $rules = $this->db->query("
+            SELECT r.*, sz.subnet as src_subnet, dz.subnet as dst_subnet
+            FROM acl_rules r
+            LEFT JOIN zones sz ON sz.id = r.src_zone_id
+            LEFT JOIN zones dz ON dz.id = r.dst_zone_id
+            ORDER BY r.priority ASC, r.id ASC
+        ");
+
+        foreach ($rules as $rule) {
+            $src = $rule['src_ip_override'] ?: ($rule['src_subnet'] ?? null);
+            $dst = $rule['dst_ip_override'] ?: ($rule['dst_subnet'] ?? null);
+            $this->applyAclRule($rule['rule_type'], $rule['action'], $src, $dst);
+        }
+
+        shell_exec('iptables -A SKONAGUARD -j RETURN 2>/dev/null');
+    }
+
+    private function setupAclChain(): void
+    {
+        shell_exec('iptables -N SKONAGUARD 2>/dev/null');
+        $check = shell_exec('iptables -C FORWARD -i wg0 -j SKONAGUARD 2>&1');
+        if ($check !== null && trim($check) !== '') {
+            shell_exec('iptables -I FORWARD 1 -i wg0 -j SKONAGUARD 2>/dev/null');
+        }
+    }
+
+    private function teardownAclChain(): void
+    {
+        shell_exec('iptables -D FORWARD -i wg0 -j SKONAGUARD 2>/dev/null');
+        shell_exec('iptables -F SKONAGUARD 2>/dev/null');
+        shell_exec('iptables -X SKONAGUARD 2>/dev/null');
+    }
+
+    private function applyAclRule(string $type, string $action, ?string $src, ?string $dst): void
+    {
+        $s    = $src ? "-s " . escapeshellarg($src) : '';
+        $d    = $dst ? "-d " . escapeshellarg($dst) : '';
+        $base = trim("iptables -A SKONAGUARD {$s} {$d}");
+
+        switch ($type) {
+            case 'full':
+                shell_exec("{$base} -j {$action} 2>/dev/null");
+                break;
+
+            case 'established':
+                shell_exec("{$base} -j ACCEPT 2>/dev/null");
+                if ($src && $dst) {
+                    $rev = trim("iptables -A SKONAGUARD -s " . escapeshellarg($dst) . " -d " . escapeshellarg($src));
+                    shell_exec("{$rev} -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT 2>/dev/null");
+                    shell_exec("{$rev} -m conntrack --ctstate NEW -j DROP 2>/dev/null");
+                }
+                break;
+
+            case 'icmp_only':
+                shell_exec("{$base} -p icmp -j ACCEPT 2>/dev/null");
+                shell_exec("{$base} -j DROP 2>/dev/null");
+                break;
+
+            case 'deny':
+                shell_exec("{$base} -j DROP 2>/dev/null");
+                break;
+        }
     }
 
     private function stripWgQuickConf(string $conf): string
