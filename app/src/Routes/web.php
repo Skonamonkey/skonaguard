@@ -12,12 +12,12 @@ use SkonaGuard\Middleware\AuthMiddleware;
 
 $app->add(\Slim\Views\TwigMiddleware::createFromContainer($app, Twig::class));
 
-$app->get('/', function (Request $req, Response $res) {
+$app->get('/', function (Request $request, Response $response) {
     $setupDone = ($_ENV['SETUP_COMPLETE'] ?? 'false') === 'true';
     if (!$setupDone) {
-        return $res->withHeader('Location', '/setup')->withStatus(302);
+        return $response->withHeader('Location', '/setup')->withStatus(302);
     }
-    return $res->withHeader('Location', '/dashboard')->withStatus(302);
+    return $response->withHeader('Location', '/dashboard')->withStatus(302);
 });
 
 $app->get('/setup[/{step}]', [SetupController::class, 'show']);
