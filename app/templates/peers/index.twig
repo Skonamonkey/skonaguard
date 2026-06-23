@@ -374,7 +374,7 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;vertical-align:-3px;margin-right:6px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                 Subnet Conflict Detected
             </span>
-            <button class="modal-close" onclick="closeModal('modal-subnet-conflict')">
+            <button class="modal-close" onclick="cancelConflict()">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
         </div>
@@ -392,7 +392,7 @@
             </div>
         </div>
         <div class="modal-footer">
-            <button type="button" class="btn btn-ghost" onclick="closeModal('modal-subnet-conflict')">Cancel</button>
+            <button type="button" class="btn btn-ghost" onclick="cancelConflict()">Cancel</button>
             <button type="button" class="btn" id="conflict-save-anyway" onclick="saveAnywayFromConflict()" style="background:var(--color-warning); color:#000; border-color:var(--color-warning)">Save Anyway</button>
         </div>
     </div>
@@ -461,7 +461,7 @@ function onProfileChange(profileId) {
 
     fetch('/profiles/' + profileId + '/data')
         .then(r => r.json())
-        .then(p => {
+        .then(async p => {
             const parts = [];
             if (p.zone_name)          parts.push('Zone: ' + p.zone_name + ' (' + (p.zone_subnet || '') + ')');
             if (p.custom_allowed_ips) parts.push('Allowed IPs: ' + p.custom_allowed_ips);
@@ -476,6 +476,16 @@ function onProfileChange(profileId) {
             zoneSelect.required = false;
             zoneSelect.disabled = true;
             zoneHidden.value = p.zone_id || '';
+
+            if (p.is_gateway && p.gateway_subnet) {
+                const addForm    = document.querySelector('#modal-add form');
+                const forceInput = document.getElementById('add-force-gateway');
+                if (forceInput && forceInput.value !== '1') {
+                    const fakeInput = { value: p.gateway_subnet };
+                    _conflictOnProfileSelect = profileId;
+                    await checkGatewayConflicts(addForm, fakeInput, forceInput, null);
+                }
+            }
         })
         .catch(() => {
             manualConfig.style.display = 'block';
@@ -594,7 +604,8 @@ function copyTokenUrl() {
     navigator.clipboard.writeText(text).catch(() => {});
 }
 
-let _pendingConflictForm = null;
+let _pendingConflictForm      = null;
+let _conflictOnProfileSelect  = null;
 
 async function checkGatewayConflicts(form, subnetInput, forceInput, excludeId) {
     const subnet = subnetInput ? subnetInput.value.trim() : '';
@@ -629,11 +640,22 @@ async function checkGatewayConflicts(form, subnetInput, forceInput, excludeId) {
 
 function saveAnywayFromConflict() {
     closeModal('modal-subnet-conflict');
+    _conflictOnProfileSelect = null;
     if (_pendingConflictForm) {
         _pendingConflictForm.forceInput.value = '1';
         _pendingConflictForm.form.submit();
         _pendingConflictForm = null;
     }
+}
+
+function cancelConflict() {
+    closeModal('modal-subnet-conflict');
+    if (_conflictOnProfileSelect !== null) {
+        document.getElementById('add-profile-select').value = '';
+        onProfileChange('');
+        _conflictOnProfileSelect = null;
+    }
+    _pendingConflictForm = null;
 }
 
 document.addEventListener('DOMContentLoaded', () => {

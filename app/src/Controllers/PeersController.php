@@ -245,10 +245,18 @@ class PeersController
             return $response->withHeader('Content-Type', 'application/json');
         }
 
-        $sql  = "SELECT id, name, vpn_ip, gateway_subnet FROM peers WHERE is_gateway = 1 AND enabled = 1 AND gateway_subnet IS NOT NULL";
+        $sql  = "
+            SELECT p.id, p.name, p.vpn_ip,
+                   COALESCE(p.gateway_subnet, pr.gateway_subnet) AS gateway_subnet
+            FROM peers p
+            LEFT JOIN profiles pr ON pr.id = p.profile_id
+            WHERE (p.is_gateway = 1 OR COALESCE(p.is_gateway, pr.is_gateway, 0) = 1)
+              AND p.enabled = 1
+              AND COALESCE(p.gateway_subnet, pr.gateway_subnet) IS NOT NULL
+        ";
         $args = [];
         if ($excludeId !== null) {
-            $sql   .= " AND id != ?";
+            $sql   .= " AND p.id != ?";
             $args[] = $excludeId;
         }
         $existingPeers = $this->db->query($sql, $args);
