@@ -1,4 +1,4 @@
-FROM golang:1.21-alpine AS wggo-builder
+FROM golang:1.23-alpine AS wggo-builder
 RUN apk add --no-cache git
 RUN go install golang.zx2c4.com/wireguard/wireguard-go@latest
 
