@@ -58,6 +58,7 @@ class AclController
         $ruleType   = array_key_exists($body['rule_type'] ?? '', self::RULE_TYPES) ? $body['rule_type'] : 'full';
         $action     = $ruleType === 'deny' ? 'DROP' : 'ACCEPT';
         $priority   = max(1, min(999, (int) ($body['priority'] ?? 100)));
+        $dstPort    = trim($body['dst_port'] ?? '');
 
         if (!$name) {
             $_SESSION['flash_error'] = 'Rule name is required.';
@@ -65,9 +66,9 @@ class AclController
         }
 
         $this->db->execute("
-            INSERT INTO acl_rules (name, src_zone_id, dst_zone_id, src_ip_override, dst_ip_override, action, rule_type, priority)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        ", [$name, $srcZoneId, $dstZoneId, $srcIp ?: null, $dstIp ?: null, $action, $ruleType, $priority]);
+            INSERT INTO acl_rules (name, src_zone_id, dst_zone_id, src_ip_override, dst_ip_override, action, rule_type, dst_port, priority)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ", [$name, $srcZoneId, $dstZoneId, $srcIp ?: null, $dstIp ?: null, $action, $ruleType, $dstPort ?: null, $priority]);
 
         $this->wg->syncAcl();
         $_SESSION['flash_success'] = "Rule \"{$name}\" created.";
@@ -85,6 +86,7 @@ class AclController
         $ruleType   = array_key_exists($body['rule_type'] ?? '', self::RULE_TYPES) ? $body['rule_type'] : 'full';
         $action     = $ruleType === 'deny' ? 'DROP' : 'ACCEPT';
         $priority   = max(1, min(999, (int) ($body['priority'] ?? 100)));
+        $dstPort    = trim($body['dst_port'] ?? '');
 
         if (!$name) {
             $_SESSION['flash_error'] = 'Rule name is required.';
@@ -92,9 +94,9 @@ class AclController
         }
 
         $this->db->execute("
-            UPDATE acl_rules SET name = ?, src_zone_id = ?, dst_zone_id = ?, src_ip_override = ?, dst_ip_override = ?, action = ?, rule_type = ?, priority = ?
+            UPDATE acl_rules SET name = ?, src_zone_id = ?, dst_zone_id = ?, src_ip_override = ?, dst_ip_override = ?, action = ?, rule_type = ?, dst_port = ?, priority = ?
             WHERE id = ?
-        ", [$name, $srcZoneId, $dstZoneId, $srcIp ?: null, $dstIp ?: null, $action, $ruleType, $priority, (int) $id]);
+        ", [$name, $srcZoneId, $dstZoneId, $srcIp ?: null, $dstIp ?: null, $action, $ruleType, $dstPort ?: null, $priority, (int) $id]);
 
         $this->wg->syncAcl();
         $_SESSION['flash_success'] = "Rule updated.";

@@ -78,6 +78,7 @@ CREATE TABLE IF NOT EXISTS acl_rules (
     dst_ip_override TEXT,
     action          TEXT    NOT NULL DEFAULT 'ACCEPT',
     rule_type       TEXT    NOT NULL DEFAULT 'full',
+    dst_port        TEXT,
     priority        INTEGER NOT NULL DEFAULT 100,
     created_at      TEXT    NOT NULL DEFAULT (datetime('now'))
 );
@@ -90,5 +91,13 @@ CREATE TABLE IF NOT EXISTS download_tokens (
     created_at TEXT    NOT NULL DEFAULT (datetime('now'))
 );
 ");
+
+// Additive migrations for existing databases
+$alterations = [
+    "ALTER TABLE acl_rules ADD COLUMN dst_port TEXT",
+];
+foreach ($alterations as $sql) {
+    try { $pdo->exec($sql); } catch (\Exception $e) { /* column already exists */ }
+}
 
 echo "Database migrated successfully.\n";

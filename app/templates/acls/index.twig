@@ -49,6 +49,7 @@
                     <th>Source</th>
                     <th>Destination</th>
                     <th>Access</th>
+                    <th>Port</th>
                     <th></th>
                 </tr>
             </thead>
@@ -90,6 +91,13 @@
                             <span class="badge">{{ rule.rule_type }}</span>
                         {% endif %}
                     </td>
+                    <td>
+                        {% if rule.dst_port %}
+                            <code style="font-size:0.75rem; color:var(--text-secondary)">:{{ rule.dst_port }}</code>
+                        {% else %}
+                            <span style="color:var(--text-muted); font-size:0.8rem">Any</span>
+                        {% endif %}
+                    </td>
                     <td style="text-align:right; white-space:nowrap">
                         <button class="btn-icon" title="Edit"
                             onclick='openEditModal({{ rule|json_encode }})'>
@@ -103,7 +111,7 @@
                 </tr>
             {% else %}
                 <tr>
-                    <td colspan="6" style="text-align:center; color:var(--text-muted); padding:40px 0;">
+                    <td colspan="7" style="text-align:center; color:var(--text-muted); padding:40px 0;">
                         No rules yet. Without rules, all VPN traffic between zones is permitted.
                     </td>
                 </tr>
@@ -177,6 +185,11 @@
                         <option value="icmp_only">ICMP / Ping Only — ping between zones, all other traffic blocked</option>
                         <option value="deny">Deny All — block all traffic in both directions</option>
                     </select>
+                </div>
+                <div class="form-group">
+                    <label>Destination Port <span style="color:var(--text-muted)">(optional — leave blank for all ports)</span></label>
+                    <input type="text" name="dst_port" placeholder="e.g. 443 or 80,443 or 8000-9000">
+                    <p style="font-size:0.72rem; color:var(--text-muted); margin:4px 0 0">Single port, comma-separated list, or range (dash). Ignored for ICMP rules.</p>
                 </div>
             </div>
             <div class="modal-footer">
@@ -252,6 +265,11 @@
                         <option value="deny">Deny All — block all traffic in both directions</option>
                     </select>
                 </div>
+                <div class="form-group">
+                    <label>Destination Port <span style="color:var(--text-muted)">(optional — leave blank for all ports)</span></label>
+                    <input type="text" id="edit-dst-port" name="dst_port" placeholder="e.g. 443 or 80,443 or 8000-9000">
+                    <p style="font-size:0.72rem; color:var(--text-muted); margin:4px 0 0">Single port, comma-separated list, or range (dash). Ignored for ICMP rules.</p>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-ghost" onclick="closeModal('modal-edit')">Cancel</button>
@@ -320,14 +338,15 @@ document.querySelectorAll('.modal-backdrop').forEach(b => {
 });
 
 function openEditModal(rule) {
-    document.getElementById('edit-name').value     = rule.name;
-    document.getElementById('edit-priority').value = rule.priority;
-    document.getElementById('edit-src-zone').value = rule.src_zone_id ?? '';
-    document.getElementById('edit-dst-zone').value = rule.dst_zone_id ?? '';
-    document.getElementById('edit-src-ip').value   = rule.src_ip_override ?? '';
-    document.getElementById('edit-dst-ip').value   = rule.dst_ip_override ?? '';
+    document.getElementById('edit-name').value      = rule.name;
+    document.getElementById('edit-priority').value  = rule.priority;
+    document.getElementById('edit-src-zone').value  = rule.src_zone_id ?? '';
+    document.getElementById('edit-dst-zone').value  = rule.dst_zone_id ?? '';
+    document.getElementById('edit-src-ip').value    = rule.src_ip_override ?? '';
+    document.getElementById('edit-dst-ip').value    = rule.dst_ip_override ?? '';
     document.getElementById('edit-rule-type').value = rule.rule_type;
-    document.getElementById('form-edit').action    = '/acls/' + rule.id;
+    document.getElementById('edit-dst-port').value  = rule.dst_port ?? '';
+    document.getElementById('form-edit').action     = '/acls/' + rule.id;
     openModal('modal-edit');
 }
 

@@ -70,8 +70,11 @@ class SettingsController
 
     private function updateAcl(Response $response, array $body): Response
     {
-        $enabled = isset($body['acl_enforcement']) ? '1' : '0';
+        $enabled       = isset($body['acl_enforcement']) ? '1' : '0';
+        $defaultPolicy = ($body['acl_default_policy'] ?? 'permissive') === 'restrictive' ? 'restrictive' : 'permissive';
+
         $this->db->execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('acl_enforcement', ?)", [$enabled]);
+        $this->db->execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('acl_default_policy', ?)", [$defaultPolicy]);
 
         try {
             $this->wg->syncAcl();

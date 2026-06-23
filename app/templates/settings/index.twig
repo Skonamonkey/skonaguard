@@ -120,6 +120,27 @@
                 </div>
                 <span style="font-weight:600">Enable ACL enforcement</span>
             </label>
+
+            <div style="margin-bottom:20px">
+                <label style="display:block; font-size:0.8rem; font-weight:600; color:var(--text-secondary); margin-bottom:8px">Default Policy <span style="font-weight:400; color:var(--text-muted)">(when no rule matches)</span></label>
+                <div style="display:flex; gap:10px">
+                    <label style="flex:1; display:flex; align-items:flex-start; gap:10px; padding:12px 14px; border-radius:var(--radius-sm); border:2px solid {{ (settings.acl_default_policy ?? 'permissive') == 'permissive' ? 'var(--color-primary)' : 'var(--border-input)' }}; cursor:pointer; background:var(--surface-input)" id="policy-permissive-label">
+                        <input type="radio" name="acl_default_policy" value="permissive" id="policy-permissive" style="margin-top:2px; flex-shrink:0" {{ (settings.acl_default_policy ?? 'permissive') == 'permissive' ? 'checked' : '' }}>
+                        <div>
+                            <div style="font-weight:600; font-size:0.875rem">Permissive</div>
+                            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px">Allow traffic that doesn't match any rule. Best for gradual rollout.</div>
+                        </div>
+                    </label>
+                    <label style="flex:1; display:flex; align-items:flex-start; gap:10px; padding:12px 14px; border-radius:var(--radius-sm); border:2px solid {{ (settings.acl_default_policy ?? 'permissive') == 'restrictive' ? 'var(--color-danger)' : 'var(--border-input)' }}; cursor:pointer; background:var(--surface-input)" id="policy-restrictive-label">
+                        <input type="radio" name="acl_default_policy" value="restrictive" id="policy-restrictive" style="margin-top:2px; flex-shrink:0" {{ (settings.acl_default_policy ?? 'permissive') == 'restrictive' ? 'checked' : '' }}>
+                        <div>
+                            <div style="font-weight:600; font-size:0.875rem; color:var(--color-danger)">Restrictive</div>
+                            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px">Block all traffic not matched by a rule. Requires explicit allow rules for everything.</div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
             <button type="submit" class="btn btn-primary">Apply</button>
         </form>
     </div>
@@ -181,5 +202,15 @@ if (aclToggle) {
         aclThumb.style.left = on ? '23px' : '3px';
     });
 }
+
+const policyRadios = document.querySelectorAll('input[name="acl_default_policy"]');
+const permLabel = document.getElementById('policy-permissive-label');
+const restLabel = document.getElementById('policy-restrictive-label');
+function updatePolicyHighlight() {
+    const val = document.querySelector('input[name="acl_default_policy"]:checked')?.value ?? 'permissive';
+    if (permLabel) permLabel.style.borderColor = val === 'permissive' ? 'var(--color-primary)' : 'var(--border-input)';
+    if (restLabel) restLabel.style.borderColor = val === 'restrictive' ? 'var(--color-danger)' : 'var(--border-input)';
+}
+policyRadios.forEach(r => r.addEventListener('change', updatePolicyHighlight));
 </script>
 {% endblock %}
