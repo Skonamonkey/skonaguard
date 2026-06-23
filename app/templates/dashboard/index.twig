@@ -150,7 +150,7 @@
 
 <div class="section-header">
     <div class="section-title">Recent Peers</div>
-    <a href="/peers/add" class="btn-sm">+ Add Peer</a>
+    <a href="/peers" class="btn-sm">+ Add Peer</a>
 </div>
 
 <div class="table-card">
@@ -168,7 +168,7 @@
             {% for peer in recent_peers %}
             <tr>
                 <td style="color:var(--text-primary); font-weight:500;">
-                    <a href="/peers/{{ peer.id }}" style="color:inherit; text-decoration:none;">{{ peer.name }}</a>
+                    <a href="/peers" style="color:inherit; text-decoration:none;">{{ peer.name }}</a>
                 </td>
                 <td><span class="badge badge-blue">{{ peer.zone_name }}</span></td>
                 <td style="font-family:monospace;">{{ peer.vpn_ip }}</td>
@@ -186,7 +186,7 @@
     {% else %}
     <div class="empty-state">
         🔒
-        <p>No peers yet. <a href="/peers/add" style="color:var(--color-primary);">Add your first peer</a> to get started.</p>
+        <p>No peers yet. <a href="/peers" style="color:var(--color-primary);">Add your first peer</a> to get started.</p>
     </div>
     {% endif %}
 </div>
