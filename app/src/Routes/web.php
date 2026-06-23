@@ -17,8 +17,9 @@ use SkonaGuard\Middleware\AuthMiddleware;
 
 $app->add(\Slim\Views\TwigMiddleware::createFromContainer($app, Twig::class));
 
-$app->get('/', function (Request $request, Response $response) {
-    $setupDone = ($_ENV['SETUP_COMPLETE'] ?? 'false') === 'true';
+$app->get('/', function (Request $request, Response $response) use ($app) {
+    $db = $app->getContainer()->get(\SkonaGuard\Models\Database::class);
+    $setupDone = (bool) $db->queryOne("SELECT COUNT(*) as c FROM users")['c'];
     if (!$setupDone) {
         return $response->withHeader('Location', '/setup')->withStatus(302);
     }

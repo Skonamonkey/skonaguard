@@ -21,7 +21,7 @@ class SetupController
 
     public function show(Request $request, Response $response, ?string $step = null): Response
     {
-        if (($_ENV['SETUP_COMPLETE'] ?? 'false') === 'true') {
+        if ($this->isSetupComplete()) {
             return $response->withHeader('Location', '/dashboard')->withStatus(302);
         }
 
@@ -37,7 +37,7 @@ class SetupController
 
     public function handle(Request $request, Response $response, ?string $step = null): Response
     {
-        if (($_ENV['SETUP_COMPLETE'] ?? 'false') === 'true') {
+        if ($this->isSetupComplete()) {
             return $response->withHeader('Location', '/dashboard')->withStatus(302);
         }
 
@@ -172,6 +172,11 @@ class SetupController
         $_SESSION['username']   = $data['username'];
 
         return $response->withHeader('Location', '/dashboard')->withStatus(302);
+    }
+
+    private function isSetupComplete(): bool
+    {
+        return (bool) ($this->db->queryOne("SELECT COUNT(*) as c FROM users")['c'] ?? 0);
     }
 
     private function error(Response $response, int $step, string $message): Response
