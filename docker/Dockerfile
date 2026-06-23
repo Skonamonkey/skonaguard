@@ -29,6 +29,7 @@ RUN composer install --no-dev --optimize-autoloader --no-interaction 2>/dev/null
     composer install --no-dev --optimize-autoloader --no-interaction --ignore-platform-reqs
 
 COPY app/ .
+COPY .env.example /app/.env.example
 
 COPY docker/nginx.conf /etc/nginx/nginx.conf
 COPY docker/php-fpm.conf /etc/php82/php-fpm.d/www.conf

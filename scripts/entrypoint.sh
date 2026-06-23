@@ -6,7 +6,11 @@ DB_FILE=$DATA_DIR/skonaguard.db
 ENV_FILE=/app/.env
 
 if [ ! -f "$ENV_FILE" ]; then
-    cp /app/.env.example "$ENV_FILE"
+    if [ -f /app/.env.example ]; then
+        cp /app/.env.example "$ENV_FILE"
+    else
+        touch "$ENV_FILE"
+    fi
 fi
 
 if [ ! -d "$DATA_DIR" ]; then
