@@ -22,15 +22,15 @@ class WireGuardService
         return ['private' => $private, 'public' => $public, 'preshared' => $preshared];
     }
 
-    public function allocateIp(int $zoneId): string
+    public function allocateIp(int|string $zoneId): string
     {
-        $zone = $this->db->queryOne("SELECT subnet FROM zones WHERE id = ?", [$zoneId]);
+        $zone = $this->db->queryOne("SELECT subnet FROM zones WHERE id = ?", [(int) $zoneId]);
         if (!$zone) throw new \RuntimeException("Zone not found");
 
         [$network, $prefix] = explode('/', $zone['subnet']);
         $base   = ip2long($network);
         $used   = array_column(
-            $this->db->query("SELECT vpn_ip FROM peers WHERE zone_id = ?", [$zoneId]),
+            $this->db->query("SELECT vpn_ip FROM peers WHERE zone_id = ?", [(int) $zoneId]),
             'vpn_ip'
         );
         $usedLongs = array_map('ip2long', $used);
@@ -44,11 +44,11 @@ class WireGuardService
         throw new \RuntimeException("No available IPs in zone subnet");
     }
 
-    public function generateClientConfig(int $peerId): string
+    public function generateClientConfig(int|string $peerId): string
     {
         $peer = $this->db->queryOne(
             "SELECT p.*, z.subnet as zone_subnet FROM peers p JOIN zones z ON z.id = p.zone_id WHERE p.id = ?",
-            [$peerId]
+            [(int) $peerId]
         );
         if (!$peer) throw new \RuntimeException("Peer not found");
 
@@ -117,7 +117,7 @@ class WireGuardService
         $stripped = $this->stripWgQuickConf($conf);
         $tmp = tempnam('/tmp', 'wg-sync-');
         file_put_contents($tmp, $stripped);
-        $out = shell_exec("wg syncconf " . self::WG_INTERFACE . " " . escapeshellarg($tmp) . " 2>&1");
+        shell_exec("wg syncconf " . self::WG_INTERFACE . " " . escapeshellarg($tmp) . " 2>&1");
         unlink($tmp);
 
         return true;
