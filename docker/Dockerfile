@@ -19,7 +19,7 @@ RUN apk add --no-cache \
 
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
-COPY --from=wggo-builder /go/bin/wireguard-go /usr/local/bin/wireguard-go
+COPY --from=wggo-builder /usr/local/bin/wireguard-go /usr/local/bin/wireguard-go
 
 WORKDIR /app
 
