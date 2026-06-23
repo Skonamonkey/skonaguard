@@ -37,7 +37,7 @@ COPY docker/supervisord.conf /etc/supervisord.conf
 COPY scripts/ /app/scripts/
 COPY scripts/entrypoint.sh /entrypoint.sh
 
-RUN chmod +x /entrypoint.sh \
+RUN chmod +x /entrypoint.sh /app/scripts/wg-start.sh \
     && mkdir -p /var/run/wireguard /etc/wireguard /app/database \
     && chmod 700 /etc/wireguard
 

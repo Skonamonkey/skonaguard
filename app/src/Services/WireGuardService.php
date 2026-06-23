@@ -140,7 +140,7 @@ class WireGuardService
 
     private function detectEgressInterface(): string
     {
-        $out = trim((string) shell_exec("ip route get 8.8.8.8 2>/dev/null | grep -oP 'dev \K\S+'"));
+        $out = trim((string) shell_exec("ip route get 8.8.8.8 2>/dev/null | awk '/dev/{for(i=1;i<=NF;i++) if(\$i==\"dev\") print \$(i+1)}'"));
         return $out ?: 'eth0';
     }
 }
