@@ -29,10 +29,16 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
             Access Rules
         </div>
-        <button class="btn btn-primary btn-sm" onclick="openModal('modal-add')">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Add Rule
-        </button>
+        <div style="display:flex; gap:8px">
+            <button class="btn btn-ghost btn-sm" onclick="viewChain()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+                Raw Chain
+            </button>
+            <button class="btn btn-primary btn-sm" onclick="openModal('modal-add')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Add Rule
+            </button>
+        </div>
     </div>
     <div class="table-wrap">
         <table>
@@ -255,6 +261,32 @@
     </div>
 </div>
 
+<!-- Chain Diagnostic Modal -->
+<div class="modal-backdrop" id="modal-chain">
+    <div class="modal" style="max-width:760px">
+        <div class="modal-header">
+            <span class="modal-title">Live iptables Chain</span>
+            <button class="modal-close" onclick="closeModal('modal-chain')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div id="chain-status" style="font-size:0.8rem; margin-bottom:12px; color:var(--text-muted)">Loading…</div>
+            <p style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-muted); margin:0 0 6px">SKONAGUARD chain</p>
+            <pre id="chain-skonaguard" style="background:var(--surface-input); border:1px solid var(--border-input); border-radius:var(--radius-sm); padding:14px; font-size:0.72rem; color:var(--text-primary); overflow-x:auto; white-space:pre; margin:0 0 16px">Loading…</pre>
+            <p style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-muted); margin:0 0 6px">FORWARD chain</p>
+            <pre id="chain-forward" style="background:var(--surface-input); border:1px solid var(--border-input); border-radius:var(--radius-sm); padding:14px; font-size:0.72rem; color:var(--text-secondary); overflow-x:auto; white-space:pre; margin:0">Loading…</pre>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-ghost btn-sm" onclick="viewChain()" style="margin-right:auto">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.5"/></svg>
+                Refresh
+            </button>
+            <button type="button" class="btn btn-ghost" onclick="closeModal('modal-chain')">Close</button>
+        </div>
+    </div>
+</div>
+
 <!-- Delete Confirm Modal -->
 <div class="modal-backdrop" id="modal-delete">
     <div class="modal" style="max-width:400px">
@@ -297,6 +329,26 @@ function openEditModal(rule) {
     document.getElementById('edit-rule-type').value = rule.rule_type;
     document.getElementById('form-edit').action    = '/acls/' + rule.id;
     openModal('modal-edit');
+}
+
+function viewChain() {
+    document.getElementById('chain-status').textContent = 'Loading…';
+    document.getElementById('chain-skonaguard').textContent = '…';
+    document.getElementById('chain-forward').textContent = '…';
+    openModal('modal-chain');
+    fetch('/acls/chain')
+        .then(r => r.json())
+        .then(data => {
+            const enf = data.enforcement
+                ? '<span style="color:var(--color-success)">● ACL enforcement ENABLED</span>'
+                : '<span style="color:var(--color-warning)">● ACL enforcement DISABLED — rules are not active</span>';
+            document.getElementById('chain-status').innerHTML = enf;
+            document.getElementById('chain-skonaguard').textContent = data.skonaguard || '(chain not found — ACL enforcement may be off)';
+            document.getElementById('chain-forward').textContent = data.forward || '(no output)';
+        })
+        .catch(() => {
+            document.getElementById('chain-status').textContent = 'Error fetching chain data.';
+        });
 }
 
 function confirmDelete(id, name) {

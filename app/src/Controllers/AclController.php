@@ -101,6 +101,23 @@ class AclController
         return $response->withHeader('Location', '/acls')->withStatus(302);
     }
 
+    public function chain(Request $request, Response $response): Response
+    {
+        $forward = trim((string) shell_exec('iptables -L FORWARD -n -v --line-numbers 2>&1'));
+        $chain   = trim((string) shell_exec('iptables -L SKONAGUARD -n -v --line-numbers 2>&1'));
+
+        $enforcement = $this->db->queryOne("SELECT value FROM settings WHERE key = 'acl_enforcement'")['value'] ?? '0';
+
+        $payload = [
+            'enforcement' => $enforcement === '1',
+            'forward'     => $forward,
+            'skonaguard'  => $chain,
+        ];
+
+        $response->getBody()->write(json_encode($payload));
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
     public function destroy(Request $request, Response $response, string $id): Response
     {
         $rule = $this->db->queryOne("SELECT * FROM acl_rules WHERE id = ?", [(int) $id]);

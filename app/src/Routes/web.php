@@ -60,6 +60,7 @@ $app->group('', function (\Slim\Routing\RouteCollectorProxy $group) {
     $group->post('/settings', [SettingsController::class, 'update']);
 
     $group->get('/acls', [AclController::class, 'index']);
+    $group->get('/acls/chain', [AclController::class, 'chain']);
     $group->post('/acls', [AclController::class, 'store']);
     $group->post('/acls/{id:[0-9]+}', [AclController::class, 'update']);
     $group->post('/acls/{id:[0-9]+}/delete', [AclController::class, 'destroy']);
