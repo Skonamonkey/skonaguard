@@ -2,16 +2,17 @@
 
 declare(strict_types=1);
 
+use Psr\Http\Message\ResponseInterface as Response;
+use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
 use SkonaGuard\Controllers\AuthController;
 use SkonaGuard\Controllers\SetupController;
 use SkonaGuard\Controllers\DashboardController;
 use SkonaGuard\Middleware\AuthMiddleware;
-use SkonaGuard\Middleware\SetupMiddleware;
 
 $app->add(\Slim\Views\TwigMiddleware::createFromContainer($app, Twig::class));
 
-$app->get('/', function ($req, $res) {
+$app->get('/', function (Request $req, Response $res) {
     $setupDone = ($_ENV['SETUP_COMPLETE'] ?? 'false') === 'true';
     if (!$setupDone) {
         return $res->withHeader('Location', '/setup')->withStatus(302);
@@ -26,6 +27,6 @@ $app->get('/login', [AuthController::class, 'showLogin']);
 $app->post('/login', [AuthController::class, 'login']);
 $app->get('/logout', [AuthController::class, 'logout']);
 
-$app->group('', function ($group) {
+$app->group('', function (\Slim\Routing\RouteCollectorProxy $group) {
     $group->get('/dashboard', [DashboardController::class, 'index']);
 })->add(AuthMiddleware::class);
