@@ -164,8 +164,13 @@ class PeersController
             [$id, $token, $expiresAt]
         );
 
-        $appUrl = rtrim($_ENV['APP_URL'] ?? 'http://localhost:8080', '/');
-        $link   = $appUrl . '/dl/' . $token;
+        $uri    = $request->getUri();
+        $port   = $uri->getPort();
+        $appUrl = $uri->getScheme() . '://' . $uri->getHost();
+        if ($port && !in_array($port, [80, 443])) {
+            $appUrl .= ':' . $port;
+        }
+        $link = $appUrl . '/dl/' . $token;
 
         $data = ['url' => $link, 'token' => $token, 'expires_at' => $expiresAt];
         $response->getBody()->write((string) json_encode($data));
