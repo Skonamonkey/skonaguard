@@ -62,12 +62,14 @@ class WireGuardService
         $clientAddress = $peer['vpn_ip'] . '/' . $prefix;
 
         $allowedIps = $peer['custom_allowed_ips'] ?: '172.16.0.0/16';
-        $dns        = $peer['dns'] ?: '1.1.1.1';
+        $dns        = $peer['dns'] ?? '';
 
         $conf  = "[Interface]\n";
         $conf .= "PrivateKey = {$peer['private_key']}\n";
         $conf .= "Address = {$clientAddress}\n";
-        $conf .= "DNS = {$dns}\n";
+        if ($dns !== '') {
+            $conf .= "DNS = {$dns}\n";
+        }
         $conf .= "\n";
         $conf .= "[Peer]\n";
         $conf .= "PublicKey = {$serverPublicKey}\n";
