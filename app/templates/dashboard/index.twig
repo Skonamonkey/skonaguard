@@ -146,7 +146,7 @@
     </div>
     <div class="stat-card success">
         <div class="stat-label">Connected</div>
-        <div class="stat-value">{{ connected_peers }}</div>
+        <div class="stat-value" id="stat-connected">{{ connected_peers }}</div>
     </div>
     <div class="stat-card">
         <div class="stat-label">Zones</div>
@@ -181,7 +181,7 @@
         <tbody>
             {% for peer in peers %}
             {% if peer.enabled %}
-            <tr>
+            <tr data-pubkey="{{ peer.public_key }}">
                 <td>
                     {% if peer.wg_connected %}
                         <span class="peer-dot online" title="Connected"></span>
@@ -194,13 +194,13 @@
                 <td style="color:var(--text-primary); font-weight:500;">{{ peer.name }}</td>
                 <td><span class="badge badge-blue">{{ peer.zone_name }}</span></td>
                 <td style="font-family:monospace; font-size:0.75rem;">{{ peer.vpn_ip }}</td>
-                <td style="font-family:monospace; font-size:0.75rem; color:var(--text-muted);">
+                <td class="peer-endpoint" style="font-family:monospace; font-size:0.75rem; color:var(--text-muted);">
                     {{ peer.wg_endpoint ?? '—' }}
                 </td>
-                <td style="font-size:0.75rem; color:var(--text-muted);">
+                <td class="peer-handshake" style="font-size:0.75rem; color:var(--text-muted);">
                     {{ peer.wg_handshake_ago ?? 'Never' }}
                 </td>
-                <td class="transfer">
+                <td class="peer-transfer transfer">
                     {% if peer.wg_rx is not null %}
                         <span class="rx">↓ {{ (peer.wg_rx / 1024)|round(1) }} KB</span>
                         &nbsp;
@@ -227,4 +227,54 @@
     </div>
     {% endif %}
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function fmtBytes(b) {
+    if (b === null || b === undefined) return null;
+    if (b < 1024)       return b + ' B';
+    if (b < 1048576)    return (b / 1024).toFixed(1) + ' KB';
+    if (b < 1073741824) return (b / 1048576).toFixed(1) + ' MB';
+    return (b / 1073741824).toFixed(2) + ' GB';
+}
+
+function refreshStatus() {
+    fetch('/dashboard/status')
+        .then(r => r.json())
+        .then(data => {
+            const statEl = document.getElementById('stat-connected');
+            if (statEl) statEl.textContent = data.connected_count;
+
+            Object.entries(data.peers).forEach(([pubkey, s]) => {
+                const row = document.querySelector('tr[data-pubkey="' + pubkey + '"]');
+                if (!row) return;
+
+                const dot = row.querySelector('.peer-dot');
+                if (dot) {
+                    dot.className = 'peer-dot ' + (s.connected ? 'online' : (s.handshake_ago ? 'idle' : 'offline'));
+                    dot.title     = s.connected ? 'Connected' : (s.handshake_ago ? 'Idle / no recent handshake' : 'Never connected');
+                }
+
+                const ep = row.querySelector('.peer-endpoint');
+                if (ep) ep.textContent = s.endpoint ?? '—';
+
+                const hs = row.querySelector('.peer-handshake');
+                if (hs) hs.textContent = s.handshake_ago ?? 'Never';
+
+                const tx = row.querySelector('.peer-transfer');
+                if (tx) {
+                    if (s.rx !== null && s.rx !== undefined) {
+                        tx.innerHTML = '<span class="rx">↓ ' + fmtBytes(s.rx) + '</span>&nbsp;<span class="tx">↑ ' + fmtBytes(s.tx) + '</span>';
+                    } else {
+                        tx.innerHTML = '<span style="color:var(--text-muted)">—</span>';
+                    }
+                }
+            });
+        })
+        .catch(() => {});
+}
+
+setInterval(refreshStatus, 10000);
+</script>
 {% endblock %}

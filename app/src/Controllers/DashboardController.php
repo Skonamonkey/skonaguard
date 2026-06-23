@@ -16,6 +16,37 @@ class DashboardController
         private Database $db
     ) {}
 
+    public function status(Request $request, Response $response): Response
+    {
+        $wgStats = $this->parseWgDump();
+        $dbPeers = $this->db->query("SELECT id, public_key FROM peers WHERE enabled = 1");
+
+        $now    = time();
+        $result = [];
+        $connected = 0;
+
+        foreach ($dbPeers as $peer) {
+            $stat = $wgStats[$peer['public_key']] ?? null;
+            $hs   = $stat ? (int) $stat['handshake'] : 0;
+            $isConnected = $stat && $hs > 0 && ($now - $hs) < 180;
+            if ($isConnected) $connected++;
+
+            $result[$peer['public_key']] = [
+                'connected'     => $isConnected,
+                'handshake_ago' => $stat && $hs > 0 ? $this->humanAgo($hs) : null,
+                'endpoint'      => $stat['endpoint'] ?? null,
+                'rx'            => $stat['rx'] ?? null,
+                'tx'            => $stat['tx'] ?? null,
+            ];
+        }
+
+        $response->getBody()->write(json_encode([
+            'connected_count' => $connected,
+            'peers'           => $result,
+        ]));
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
     public function index(Request $request, Response $response): Response
     {
         $totalPeers     = $this->db->queryOne("SELECT COUNT(*) as c FROM peers")['c'] ?? 0;

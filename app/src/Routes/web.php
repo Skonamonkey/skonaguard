@@ -37,6 +37,7 @@ $app->get('/dl/{token}', [PeersController::class, 'downloadViaToken']);
 
 $app->group('', function (\Slim\Routing\RouteCollectorProxy $group) {
     $group->get('/dashboard', [DashboardController::class, 'index']);
+    $group->get('/dashboard/status', [DashboardController::class, 'status']);
 
     $group->get('/zones', [ZonesController::class, 'index']);
     $group->post('/zones', [ZonesController::class, 'store']);
