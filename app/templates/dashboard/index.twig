@@ -93,6 +93,16 @@
     .badge-blue   { background: var(--color-primary-muted); color: var(--color-primary); }
     .badge-green  { background: var(--color-success-muted); color: var(--color-success); }
     .badge-purple { background: var(--color-purple-muted);  color: var(--color-purple); }
+    .badge-grey   { background: var(--surface-raised); color: var(--text-muted); }
+
+    .peer-dot { width:8px; height:8px; border-radius:50%; display:inline-block; flex-shrink:0; }
+    .peer-dot.online  { background:var(--color-success); box-shadow:0 0 5px var(--color-success); }
+    .peer-dot.offline { background:var(--color-danger); }
+    .peer-dot.idle    { background:var(--text-muted); }
+
+    .transfer { font-family:monospace; font-size:0.75rem; color:var(--text-muted); white-space:nowrap; }
+    .transfer .rx { color:var(--color-success); }
+    .transfer .tx { color:var(--color-primary); }
 
     .empty-state {
         text-align: center;
@@ -135,8 +145,8 @@
         <div class="stat-value">{{ total_peers }}</div>
     </div>
     <div class="stat-card success">
-        <div class="stat-label">Enabled</div>
-        <div class="stat-value">{{ enabled_peers }}</div>
+        <div class="stat-label">Connected</div>
+        <div class="stat-value">{{ connected_peers }}</div>
     </div>
     <div class="stat-card">
         <div class="stat-label">Zones</div>
@@ -149,29 +159,56 @@
 </div>
 
 <div class="section-header">
-    <div class="section-title">Recent Peers</div>
+    <div class="section-title">Peer Status</div>
     <a href="/peers" class="btn-sm">+ Add Peer</a>
 </div>
 
 <div class="table-card">
-    {% if recent_peers|length > 0 %}
+    {% if peers|length > 0 %}
     <table>
         <thead>
             <tr>
+                <th style="width:16px"></th>
                 <th>Name</th>
                 <th>Zone</th>
                 <th>VPN IP</th>
+                <th>Endpoint</th>
+                <th>Last Handshake</th>
+                <th>Transfer (↓ rx / ↑ tx)</th>
                 <th>Type</th>
             </tr>
         </thead>
         <tbody>
-            {% for peer in recent_peers %}
+            {% for peer in peers %}
+            {% if peer.enabled %}
             <tr>
-                <td style="color:var(--text-primary); font-weight:500;">
-                    <a href="/peers" style="color:inherit; text-decoration:none;">{{ peer.name }}</a>
+                <td>
+                    {% if peer.wg_connected %}
+                        <span class="peer-dot online" title="Connected"></span>
+                    {% elseif peer.wg_handshake_ts > 0 %}
+                        <span class="peer-dot idle" title="Idle / no recent handshake"></span>
+                    {% else %}
+                        <span class="peer-dot offline" title="Never connected"></span>
+                    {% endif %}
                 </td>
+                <td style="color:var(--text-primary); font-weight:500;">{{ peer.name }}</td>
                 <td><span class="badge badge-blue">{{ peer.zone_name }}</span></td>
-                <td style="font-family:monospace;">{{ peer.vpn_ip }}</td>
+                <td style="font-family:monospace; font-size:0.75rem;">{{ peer.vpn_ip }}</td>
+                <td style="font-family:monospace; font-size:0.75rem; color:var(--text-muted);">
+                    {{ peer.wg_endpoint ?? '—' }}
+                </td>
+                <td style="font-size:0.75rem; color:var(--text-muted);">
+                    {{ peer.wg_handshake_ago ?? 'Never' }}
+                </td>
+                <td class="transfer">
+                    {% if peer.wg_rx is not null %}
+                        <span class="rx">↓ {{ (peer.wg_rx / 1024)|round(1) }} KB</span>
+                        &nbsp;
+                        <span class="tx">↑ {{ (peer.wg_tx / 1024)|round(1) }} KB</span>
+                    {% else %}
+                        <span style="color:var(--text-muted)">—</span>
+                    {% endif %}
+                </td>
                 <td>
                     {% if peer.is_gateway %}
                         <span class="badge badge-purple">Gateway</span>
@@ -180,12 +217,12 @@
                     {% endif %}
                 </td>
             </tr>
+            {% endif %}
             {% endfor %}
         </tbody>
     </table>
     {% else %}
     <div class="empty-state">
-        🔒
         <p>No peers yet. <a href="/peers" style="color:var(--color-primary);">Add your first peer</a> to get started.</p>
     </div>
     {% endif %}
