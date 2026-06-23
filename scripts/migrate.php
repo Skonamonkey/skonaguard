@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-define('APP_ROOT', dirname(__DIR__) . '/app');
+define('APP_ROOT', dirname(__DIR__));
 
 $dbPath = $_ENV['DB_PATH'] ?? APP_ROOT . '/database/skonaguard.db';
 

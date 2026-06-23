@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-define('APP_ROOT', dirname(__DIR__) . '/app');
+define('APP_ROOT', dirname(__DIR__));
 
 $privateKey = $argv[1] ?? '';
 $publicKey  = $argv[2] ?? '';
