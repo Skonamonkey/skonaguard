@@ -165,12 +165,11 @@ class PeersController
         );
 
         $uri    = $request->getUri();
-        $port   = $uri->getPort();
-        $appUrl = $uri->getScheme() . '://' . $uri->getHost();
-        if ($port && !in_array($port, [80, 443])) {
-            $appUrl .= ':' . $port;
-        }
-        $link = $appUrl . '/dl/' . $token;
+        $scheme = $request->getHeaderLine('X-Forwarded-Proto') ?: $uri->getScheme();
+        $host   = $request->getHeaderLine('X-Forwarded-Host')  ?: $uri->getHost();
+        $host   = explode(',', $host)[0];
+        $appUrl = rtrim($scheme . '://' . trim($host), '/');
+        $link   = $appUrl . '/dl/' . $token;
 
         $data = ['url' => $link, 'token' => $token, 'expires_at' => $expiresAt];
         $response->getBody()->write((string) json_encode($data));
