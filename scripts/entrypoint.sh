@@ -18,6 +18,7 @@ if [ ! -d "$DATA_DIR" ]; then
 fi
 
 php /app/scripts/migrate.php
+chmod -R 777 "$DATA_DIR"
 
 if [ ! -f /etc/wireguard/wg0.conf ]; then
     wg genkey | tee /tmp/wg_private | wg pubkey > /tmp/wg_public
