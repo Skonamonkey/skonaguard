@@ -150,19 +150,26 @@
                         </select>
                     </div>
                 </div>
-                <div class="form-row" style="margin-bottom:16px">
-                    <div class="form-group">
-                        <label>Profile <span style="color:var(--text-muted)">(optional)</span></label>
-                        <select name="profile_id">
-                            <option value="">None</option>
-                            {% for profile in profiles %}
-                            <option value="{{ profile.id }}">{{ profile.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>DNS</label>
-                        <input type="text" name="dns" value="1.1.1.1" placeholder="1.1.1.1">
+                <div class="form-group" style="margin-bottom:16px">
+                    <label>Profile <span style="color:var(--text-muted)">(optional)</span></label>
+                    <select name="profile_id">
+                        <option value="">None</option>
+                        {% for profile in profiles %}
+                        <option value="{{ profile.id }}">{{ profile.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div style="margin-bottom:16px">
+                    <button type="button" class="advanced-toggle" onclick="toggleAdvanced('add-advanced')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px"><polyline points="6 9 12 15 18 9"/></svg>
+                        Advanced options
+                    </button>
+                    <div id="add-advanced" style="display:none; margin-top:10px; padding:14px; background:var(--surface-input); border:1px solid var(--border-input); border-radius:var(--radius-sm)">
+                        <div class="form-group">
+                            <label>DNS Override <span style="color:var(--text-muted)">(full-tunnel mode only)</span></label>
+                            <input type="text" name="dns" placeholder="e.g. 1.1.1.1 — leave blank for normal use">
+                            <small style="color:var(--text-muted)">Only set this if routing all internet traffic through the VPN. Leave blank for site-to-site / selective access.</small>
+                        </div>
                     </div>
                 </div>
                 <div class="form-group" style="margin-bottom:16px">
@@ -215,19 +222,26 @@
                         <input type="text" id="edit-zone" readonly style="opacity:0.6; cursor:not-allowed">
                     </div>
                 </div>
-                <div class="form-row" style="margin-bottom:16px">
-                    <div class="form-group">
-                        <label>Profile</label>
-                        <select id="edit-profile" name="profile_id">
-                            <option value="">None</option>
-                            {% for profile in profiles %}
-                            <option value="{{ profile.id }}">{{ profile.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>DNS</label>
-                        <input type="text" id="edit-dns" name="dns">
+                <div class="form-group" style="margin-bottom:16px">
+                    <label>Profile</label>
+                    <select id="edit-profile" name="profile_id">
+                        <option value="">None</option>
+                        {% for profile in profiles %}
+                        <option value="{{ profile.id }}">{{ profile.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div style="margin-bottom:16px">
+                    <button type="button" class="advanced-toggle" onclick="toggleAdvanced('edit-advanced')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px"><polyline points="6 9 12 15 18 9"/></svg>
+                        Advanced options
+                    </button>
+                    <div id="edit-advanced" style="display:none; margin-top:10px; padding:14px; background:var(--surface-input); border:1px solid var(--border-input); border-radius:var(--radius-sm)">
+                        <div class="form-group">
+                            <label>DNS Override <span style="color:var(--text-muted)">(full-tunnel mode only)</span></label>
+                            <input type="text" id="edit-dns" name="dns" placeholder="e.g. 1.1.1.1 — leave blank for normal use">
+                            <small style="color:var(--text-muted)">Only set this if routing all internet traffic through the VPN. Leave blank for site-to-site / selective access.</small>
+                        </div>
                     </div>
                 </div>
                 <div class="form-group" style="margin-bottom:16px">

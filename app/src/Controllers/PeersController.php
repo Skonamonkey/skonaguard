@@ -46,7 +46,7 @@ class PeersController
         $name    = trim($body['name'] ?? '');
         $zoneId  = (int) ($body['zone_id'] ?? 0);
         $profileId = ($body['profile_id'] ?? '') !== '' ? (int) $body['profile_id'] : null;
-        $dns     = trim($body['dns'] ?? '1.1.1.1');
+        $dns     = trim($body['dns'] ?? '');
         $notes   = trim($body['notes'] ?? '');
         $isGateway     = isset($body['is_gateway']) ? 1 : 0;
         $gatewaySubnet = trim($body['gateway_subnet'] ?? '');
