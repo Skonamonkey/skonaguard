@@ -55,7 +55,7 @@ class PeersController
         }
 
         $zoneId        = (int) ($body['zone_id'] ?? ($profile['zone_id'] ?? 0));
-        $dnsServer     = trim($body['dns'] ?? '');
+        $dnsServer     = isset($body['dns_use_server']) ? '' : 'skip';
         $isGateway     = isset($body['is_gateway']) ? 1 : ($profile ? (int) ($profile['is_gateway'] ?? 0) : 0);
         $gatewaySubnet = trim($body['gateway_subnet'] ?? '');
         $customAllowed = trim($body['custom_allowed_ips'] ?? '');
@@ -104,7 +104,7 @@ class PeersController
         $body          = (array) $request->getParsedBody();
         $name          = trim($body['name'] ?? '');
         $profileId     = ($body['profile_id'] ?? '') !== '' ? (int) $body['profile_id'] : null;
-        $dnsServer     = trim($body['dns'] ?? '');
+        $dnsServer     = isset($body['dns_use_server']) ? '' : 'skip';
         $notes         = trim($body['notes'] ?? '');
         $isGateway     = isset($body['is_gateway']) ? 1 : 0;
         $gatewaySubnet = trim($body['gateway_subnet'] ?? '');
