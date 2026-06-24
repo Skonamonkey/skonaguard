@@ -69,4 +69,5 @@ foreach ($zones->fetchAll(PDO::FETCH_ASSOC) as $zone) {
     }
 }
 
-file_put_contents($hostsFile, implode("\n", $lines) . "\n");
+$output = implode("\n", $lines);
+file_put_contents($hostsFile, $output ? $output . "\n" : '');
