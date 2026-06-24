@@ -49,4 +49,5 @@ exec dnsproxy \
     --bootstrap=9.9.9.9:53 \
     --bootstrap=8.8.8.8:53 \
     --cache \
-    --cache-size=4096
+    --cache-size=4096 \
+    --ipv6-disabled
