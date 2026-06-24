@@ -18,6 +18,7 @@ if [ -n "$DOCKER_GW" ]; then
     echo "$DOCKER_GW" > /tmp/docker_gw
     ip addr add "${WG_HOST_IP}/32" dev wg0 2>/dev/null || true
     iptables -t nat -A PREROUTING -i wg0 -d "${WG_HOST_IP}" -j DNAT --to-destination "${DOCKER_GW}"
+    iptables -t nat -A POSTROUTING -d "${DOCKER_GW}" -j MASQUERADE
 fi
 
 php /app/scripts/sync_acl.php 2>/dev/null || true
