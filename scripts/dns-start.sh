@@ -39,12 +39,17 @@ fi
 
 echo "[dns] Starting dnsproxy — domain=${DNS_DOMAIN} upstream=${DNS_UPSTREAM} listen=${WG_HUB_IP}:53"
 
+HOSTS_ARG=""
+if [ -s "${HOSTS_FILE}" ]; then
+    HOSTS_ARG="--hosts-files=${HOSTS_FILE}"
+fi
+
 exec dnsproxy \
     -l "${WG_HUB_IP}" \
     -p 53 \
     -u "${DNS_UPSTREAM}" \
     --bootstrap=9.9.9.9:53 \
     --bootstrap=8.8.8.8:53 \
-    --hosts-files="${HOSTS_FILE}" \
+    ${HOSTS_ARG} \
     --cache \
     --cache-size=4096

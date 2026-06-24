@@ -36,18 +36,7 @@ class DnsService
     public function sync(): void
     {
         $this->generateHostsFile();
-
-        if ($this->isEnabled()) {
-            $status = trim((string) shell_exec('supervisorctl -c /etc/supervisord.conf status dns 2>/dev/null'));
-            if (str_contains($status, 'STOPPED') || str_contains($status, 'EXITED') || str_contains($status, 'dormant')) {
-                shell_exec('supervisorctl -c /etc/supervisord.conf start dns 2>/dev/null');
-            } else {
-                shell_exec('supervisorctl -c /etc/supervisord.conf restart dns 2>/dev/null');
-            }
-        } else {
-            shell_exec('supervisorctl -c /etc/supervisord.conf stop dns 2>/dev/null');
-            file_put_contents(self::HOSTS_FILE, '');
-        }
+        shell_exec('supervisorctl -c /etc/supervisord.conf restart dns 2>/dev/null');
     }
 
     public function generateHostsFile(): void
@@ -96,6 +85,7 @@ class DnsService
             }
         }
 
-        file_put_contents(self::HOSTS_FILE, implode("\n", $lines) . "\n");
+        $content = implode("\n", $lines);
+        file_put_contents(self::HOSTS_FILE, $content ? $content . "\n" : '');
     }
 }
