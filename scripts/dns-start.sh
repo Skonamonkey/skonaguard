@@ -27,6 +27,8 @@ fi
 
 DNS_DOMAIN=$(sqlite3 "$DB_PATH" "SELECT value FROM settings WHERE key='dns_domain'" 2>/dev/null || echo "skona")
 DNS_UPSTREAM=$(sqlite3 "$DB_PATH" "SELECT value FROM settings WHERE key='dns_upstream'" 2>/dev/null || echo "9.9.9.9")
+WG_SUBNET=$(sqlite3 "$DB_PATH" "SELECT value FROM settings WHERE key='wg_subnet'" 2>/dev/null || echo "")
+WG_SUBNET="${WG_SUBNET:-${WG_SUBNET_ENV:-172.16.0.0/16}}"
 WG_HUB_IP=$(ip -4 addr show wg0 2>/dev/null | grep -E 'inet ' | awk '{print $2}' | cut -d/ -f1 | head -1)
 WG_HUB_IP="${WG_HUB_IP:-${WG_SUBNET_HUB:-172.16.0.1}}"
 
@@ -48,5 +50,7 @@ exec dnsproxy \
     "${UPSTREAM_ARGS[@]}" \
     --bootstrap=9.9.9.9:53 \
     --bootstrap=8.8.8.8:53 \
+    --hosts-file-enabled \
+    --private-subnets="${WG_SUBNET}" \
     --cache \
     --cache-size=4096
