@@ -179,7 +179,7 @@
                 <div class="form-group">
                     <label>Upstream Resolver</label>
                     <input type="text" name="dns_upstream" value="{{ settings.dns_upstream ?? '9.9.9.9' }}" placeholder="9.9.9.9">
-                    <small style="color:var(--text-muted)">Plain: <code>9.9.9.9</code> &nbsp;|&nbsp; DoT: <code>tls://9.9.9.9</code> &nbsp;|&nbsp; DoH: <code>https://dns.quad9.net/dns-query</code></small>
+                    <small style="color:var(--text-muted)">Comma-separated. Plain: <code>9.9.9.9</code> &nbsp;|&nbsp; DoT: <code>tls://9.9.9.9</code> &nbsp;|&nbsp; DoH: <code>https://dns.quad9.net/dns-query</code><br>Example: <code>tls://9.9.9.9, tls://1.1.1.1</code></small>
                 </div>
             </div>
             <button type="submit" class="btn btn-primary">Apply</button>

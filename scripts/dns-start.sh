@@ -34,10 +34,18 @@ php /app/scripts/generate_dns_hosts.php 2>/dev/null || true
 
 echo "[dns] Starting dnsproxy — domain=${DNS_DOMAIN} upstream=${DNS_UPSTREAM} listen=${WG_HUB_IP}:53"
 
+UPSTREAM_ARGS=()
+IFS=',' read -ra UPSTREAMS <<< "${DNS_UPSTREAM}"
+for u in "${UPSTREAMS[@]}"; do
+    u="$(echo "${u}" | tr -d '[:space:]')"
+    [ -n "${u}" ] && UPSTREAM_ARGS+=(-u "${u}")
+done
+[ ${#UPSTREAM_ARGS[@]} -eq 0 ] && UPSTREAM_ARGS=(-u "9.9.9.9")
+
 exec dnsproxy \
     -l "${WG_HUB_IP}" \
     -p 53 \
-    -u "${DNS_UPSTREAM}" \
+    "${UPSTREAM_ARGS[@]}" \
     --bootstrap=9.9.9.9:53 \
     --bootstrap=8.8.8.8:53 \
     --cache \
