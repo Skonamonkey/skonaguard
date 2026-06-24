@@ -172,6 +172,12 @@ class WireGuardService
             shell_exec('iptables -A SKONAGUARD -s ' . escapeshellarg($serverWgIp) . ' -j ACCEPT 2>/dev/null');
         }
 
+        $dockerGw = trim((string) @file_get_contents('/tmp/docker_gw'));
+        if ($dockerGw) {
+            shell_exec('iptables -A SKONAGUARD -d ' . escapeshellarg($dockerGw) . ' -j ACCEPT 2>/dev/null');
+            shell_exec('iptables -A SKONAGUARD -s ' . escapeshellarg($dockerGw) . ' -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT 2>/dev/null');
+        }
+
         $rules = $this->db->query("
             SELECT r.*, sz.subnet as src_subnet, dz.subnet as dst_subnet
             FROM acl_rules r

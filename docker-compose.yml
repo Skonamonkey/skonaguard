@@ -23,6 +23,7 @@ services:
       - WG_PORT=${WG_PORT:-51820}
       - WG_SUBNET=${WG_SUBNET:-172.16.0.0/16}
       - WG_SUBNET_HUB=${WG_SUBNET_HUB:-172.16.0.1}
+      - WG_HOST_IP=${WG_HOST_IP:-172.16.0.2}
       - SERVER_PUBLIC_IP=${SERVER_PUBLIC_IP:-}
       - UI_BIND=${UI_BIND:-0.0.0.0}
     networks:

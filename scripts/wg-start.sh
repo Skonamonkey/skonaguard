@@ -11,6 +11,15 @@ else
     wg-quick up /etc/wireguard/wg0.conf
 fi
 
+WG_HOST_IP="${WG_HOST_IP:-172.16.0.2}"
+DOCKER_GW=$(ip route | awk '/default/ {print $3; exit}')
+
+if [ -n "$DOCKER_GW" ]; then
+    echo "$DOCKER_GW" > /tmp/docker_gw
+    ip addr add "${WG_HOST_IP}/32" dev wg0 2>/dev/null || true
+    iptables -t nat -A PREROUTING -i wg0 -d "${WG_HOST_IP}" -j DNAT --to-destination "${DOCKER_GW}"
+fi
+
 php /app/scripts/sync_acl.php 2>/dev/null || true
 
 while ip link show wg0 > /dev/null 2>&1; do
