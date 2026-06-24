@@ -22,14 +22,31 @@ class PeersController
 
     public function index(Request $request, Response $response): Response
     {
-        $peers = $this->db->query("
-            SELECT p.*, z.name as zone_name, z.subnet as zone_subnet, pr.name as profile_name
-            FROM peers p
-            JOIN zones z ON z.id = p.zone_id
-            LEFT JOIN profiles pr ON pr.id = p.profile_id
-            ORDER BY z.name, p.name
-        ");
-        $zones    = $this->db->query("SELECT * FROM zones ORDER BY name");
+        $role    = $_SESSION['role'] ?? 'superadmin';
+        $zoneIds = ($_SESSION['zone_ids'] ?? null);
+
+        if ($role === 'zone_admin' && is_array($zoneIds) && count($zoneIds) > 0) {
+            $placeholders = implode(',', array_fill(0, count($zoneIds), '?'));
+            $peers = $this->db->query("
+                SELECT p.*, z.name as zone_name, z.subnet as zone_subnet, pr.name as profile_name
+                FROM peers p
+                JOIN zones z ON z.id = p.zone_id
+                LEFT JOIN profiles pr ON pr.id = p.profile_id
+                WHERE p.zone_id IN ($placeholders)
+                ORDER BY z.name, p.name
+            ", $zoneIds);
+            $zones = $this->db->query("SELECT * FROM zones WHERE id IN ($placeholders) ORDER BY name", $zoneIds);
+        } else {
+            $peers = $this->db->query("
+                SELECT p.*, z.name as zone_name, z.subnet as zone_subnet, pr.name as profile_name
+                FROM peers p
+                JOIN zones z ON z.id = p.zone_id
+                LEFT JOIN profiles pr ON pr.id = p.profile_id
+                ORDER BY z.name, p.name
+            ");
+            $zones = $this->db->query("SELECT * FROM zones ORDER BY name");
+        }
+
         $profiles = $this->db->query("SELECT * FROM profiles ORDER BY name");
         $lanIp    = $this->db->queryOne("SELECT value FROM settings WHERE key = 'server_lan_ip'")['value'] ?? '';
 
@@ -71,6 +88,13 @@ class PeersController
 
         if (!$name || !$zoneId) {
             $_SESSION['flash_error'] = 'Name and zone are required.';
+            return $response->withHeader('Location', '/peers')->withStatus(302);
+        }
+
+        $role    = $_SESSION['role'] ?? 'superadmin';
+        $zoneIds = $_SESSION['zone_ids'] ?? null;
+        if ($role === 'zone_admin' && is_array($zoneIds) && !in_array($zoneId, $zoneIds, false)) {
+            $_SESSION['flash_error'] = 'You do not have access to that zone.';
             return $response->withHeader('Location', '/peers')->withStatus(302);
         }
 

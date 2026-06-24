@@ -46,6 +46,14 @@ class AuthController
         unset($_SESSION['login_error']);
         $_SESSION['user_id']  = $user['id'];
         $_SESSION['username'] = $user['username'];
+        $_SESSION['role']     = $user['role'] ?? 'superadmin';
+
+        if ($_SESSION['role'] === 'zone_admin') {
+            $rows = $this->db->query("SELECT zone_id FROM user_zones WHERE user_id = ?", [(int) $user['id']]);
+            $_SESSION['zone_ids'] = array_column($rows, 'zone_id');
+        } else {
+            $_SESSION['zone_ids'] = null;
+        }
 
         return $response->withHeader('Location', '/dashboard')->withStatus(302);
     }

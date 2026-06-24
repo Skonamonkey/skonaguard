@@ -135,7 +135,7 @@ class SetupController
         }
 
         $this->db->execute(
-            "INSERT INTO users (username, password) VALUES (?, ?)",
+            "INSERT INTO users (username, password, role) VALUES (?, ?, 'superadmin')",
             [$data['username'], password_hash($data['password'], PASSWORD_BCRYPT)]
         );
 
@@ -170,6 +170,8 @@ class SetupController
         $_SESSION['setup_data'] = [];
         $_SESSION['user_id']    = $this->db->queryOne("SELECT id FROM users WHERE username = ?", [$data['username']])['id'];
         $_SESSION['username']   = $data['username'];
+        $_SESSION['role']       = 'superadmin';
+        $_SESSION['zone_ids']   = null;
 
         return $response->withHeader('Location', '/dashboard')->withStatus(302);
     }

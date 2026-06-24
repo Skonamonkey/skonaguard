@@ -110,10 +110,20 @@ $alterations = [
     "ALTER TABLE zones ADD COLUMN dns_name TEXT",
     "ALTER TABLE peers ADD COLUMN hostname TEXT",
     "ALTER TABLE peers ADD COLUMN dns_alias TEXT",
+    "ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'superadmin'",
+    "ALTER TABLE users ADD COLUMN display_name TEXT",
 ];
 foreach ($alterations as $sql) {
     try { $pdo->exec($sql); } catch (\Exception $e) { /* column already exists */ }
 }
+
+$pdo->exec("
+CREATE TABLE IF NOT EXISTS user_zones (
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    zone_id INTEGER NOT NULL REFERENCES zones(id) ON DELETE CASCADE,
+    PRIMARY KEY (user_id, zone_id)
+)
+");
 
 $hostIp     = $_ENV['WG_HOST_IP'] ?? getenv('WG_HOST_IP') ?: '172.16.0.2';
 $hostSubnet = $hostIp . '/32';
