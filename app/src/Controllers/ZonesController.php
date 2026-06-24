@@ -51,7 +51,7 @@ class ZonesController
                 [$name, $subnet, $desc ?: null, $dnsName ?: null]
             );
             $_SESSION['flash_success'] = "Zone \"{$name}\" created.";
-            try { $this->dns->generateHostsFile(); } catch (\Throwable) {}
+            try { $this->dns->sync(); } catch (\Throwable) {}
         } catch (\Exception $e) {
             $_SESSION['flash_error'] = 'A zone with that name or subnet already exists.';
         }
@@ -89,7 +89,7 @@ class ZonesController
                 [$name, $subnet, $desc ?: null, $dnsName ?: null, $id]
             );
             $_SESSION['flash_success'] = "Zone updated.";
-            try { $this->dns->generateHostsFile(); } catch (\Throwable) {}
+            try { $this->dns->sync(); } catch (\Throwable) {}
         } catch (\Exception $e) {
             $_SESSION['flash_error'] = 'A zone with that name or subnet already exists.';
         }

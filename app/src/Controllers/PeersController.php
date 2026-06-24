@@ -90,7 +90,7 @@ class PeersController
             ]);
 
             $this->wg->syncConfig();
-            try { $this->dns->generateHostsFile(); } catch (\Throwable) {}
+            try { $this->dns->sync(); } catch (\Throwable) {}
             $_SESSION['flash_success'] = "Peer \"{$name}\" created.";
         } catch (\Exception $e) {
             $_SESSION['flash_error'] = 'Error creating peer: ' . $e->getMessage();
@@ -130,7 +130,7 @@ class PeersController
             ]);
 
             $this->wg->syncConfig();
-            try { $this->dns->generateHostsFile(); } catch (\Throwable) {}
+            try { $this->dns->sync(); } catch (\Throwable) {}
             $_SESSION['flash_success'] = "Peer updated.";
         } catch (\Exception $e) {
             $_SESSION['flash_error'] = 'Error updating peer: ' . $e->getMessage();
@@ -145,7 +145,7 @@ class PeersController
         if ($peer) {
             $this->db->execute("DELETE FROM peers WHERE id = ?", [$id]);
             $this->wg->syncConfig();
-            try { $this->dns->generateHostsFile(); } catch (\Throwable) {}
+            try { $this->dns->sync(); } catch (\Throwable) {}
             $_SESSION['flash_success'] = "Peer \"{$peer['name']}\" deleted.";
         }
         return $response->withHeader('Location', '/peers')->withStatus(302);
