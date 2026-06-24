@@ -3,9 +3,29 @@
 declare(strict_types=1);
 
 $dbPath    = '/app/database/skonaguard.db';
-$hostsFile = '/etc/dnsproxy/skonaguard.hosts';
+$hostsFile = '/etc/hosts';
+$marker    = 'SKONAGUARD';
+
+function replaceMarkerBlock(string $path, string $marker, string $block): void
+{
+    $current = file_exists($path) ? file_get_contents($path) : '';
+    $begin   = "# {$marker} BEGIN";
+    $end     = "# {$marker} END";
+
+    if (str_contains($current, $begin)) {
+        $current = preg_replace('/' . preg_quote($begin, '/') . '.*?' . preg_quote($end, '/') . '\n?/s', '', $current);
+    }
+
+    $current = rtrim($current);
+    if ($block !== '') {
+        $current .= "\n{$begin}\n{$block}\n{$end}\n";
+    }
+
+    file_put_contents($path, $current);
+}
 
 if (!file_exists($dbPath)) {
+    replaceMarkerBlock($hostsFile, $marker, '');
     exit(0);
 }
 
@@ -13,7 +33,7 @@ $db = new PDO('sqlite:' . $dbPath, null, null, [PDO::ATTR_ERRMODE => PDO::ERRMOD
 
 $enabled = $db->query("SELECT value FROM settings WHERE key = 'dns_enabled'")->fetchColumn();
 if ($enabled !== '1') {
-    file_put_contents($hostsFile, '');
+    replaceMarkerBlock($hostsFile, $marker, '');
     exit(0);
 }
 
@@ -33,41 +53,29 @@ foreach ($peers->fetchAll(PDO::FETCH_ASSOC) as $peer) {
     $ip = $peer['vpn_ip'];
     if (!$ip) continue;
 
-    $names = [];
-
     if ($peer['hostname'] && $peer['zone_dns_name']) {
-        $names[] = strtolower($peer['hostname']) . '.' . strtolower($peer['zone_dns_name']) . '.' . $domain;
+        $lines[] = $ip . "\t" . strtolower($peer['hostname']) . '.' . strtolower($peer['zone_dns_name']) . '.' . $domain;
     }
 
     if ($peer['dns_alias']) {
-        $names[] = strtolower($peer['dns_alias']) . '.' . $domain;
-    }
-
-    foreach ($names as $name) {
-        $lines[] = $ip . "\t" . $name;
+        $lines[] = $ip . "\t" . strtolower($peer['dns_alias']) . '.' . $domain;
     }
 }
 
 $zones = $db->query("
-    SELECT z.id, z.dns_name, z.subnet
+    SELECT z.id, z.dns_name
     FROM zones z
     WHERE z.dns_name IS NOT NULL AND z.dns_name != ''
 ");
 
 foreach ($zones->fetchAll(PDO::FETCH_ASSOC) as $zone) {
-    $gatewayIp = trim((string) shell_exec(
-        "ip -4 addr show wg0 2>/dev/null | grep -oP '(?<=inet )[\d.]+' | head -1"
-    ));
-
     $peerGateway = $db->query("
         SELECT p.vpn_ip FROM peers p WHERE p.zone_id = {$zone['id']} AND p.is_gateway = 1 AND p.enabled = 1 LIMIT 1
     ")->fetchColumn();
 
-    $ip = $peerGateway ?: $gatewayIp;
-    if ($ip) {
-        $lines[] = $ip . "\t" . strtolower($zone['dns_name']) . '.' . $domain;
+    if ($peerGateway) {
+        $lines[] = $peerGateway . "\t" . strtolower($zone['dns_name']) . '.' . $domain;
     }
 }
 
-$output = implode("\n", $lines);
-file_put_contents($hostsFile, $output ? $output . "\n" : '');
+replaceMarkerBlock($hostsFile, $marker, implode("\n", $lines));

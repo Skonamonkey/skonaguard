@@ -2,7 +2,6 @@
 set -e
 
 DB_PATH="/app/database/skonaguard.db"
-HOSTS_FILE="/etc/dnsproxy/skonaguard.hosts"
 
 wait_for_db() {
     local count=0
@@ -32,9 +31,6 @@ WG_HUB_IP=$(ip -4 addr show wg0 2>/dev/null | grep -E 'inet ' | awk '{print $2}'
 WG_HUB_IP="${WG_HUB_IP:-${WG_SUBNET_HUB:-172.16.0.1}}"
 
 php /app/scripts/generate_dns_hosts.php 2>/dev/null || true
-if [ ! -s "${HOSTS_FILE}" ]; then
-    printf "# SkonaGuard DNS\n" > "${HOSTS_FILE}"
-fi
 
 echo "[dns] Starting dnsproxy — domain=${DNS_DOMAIN} upstream=${DNS_UPSTREAM} listen=${WG_HUB_IP}:53"
 
@@ -44,6 +40,5 @@ exec dnsproxy \
     -u "${DNS_UPSTREAM}" \
     --bootstrap=9.9.9.9:53 \
     --bootstrap=8.8.8.8:53 \
-    --hosts-files="${HOSTS_FILE}" \
     --cache \
     --cache-size=4096

@@ -50,7 +50,7 @@ COPY scripts/ /app/scripts/
 COPY scripts/entrypoint.sh /entrypoint.sh
 
 RUN chmod +x /entrypoint.sh /app/scripts/wg-start.sh /app/scripts/dns-start.sh \
-    && mkdir -p /var/run/wireguard /etc/wireguard /app/database /etc/dnsproxy \
+    && mkdir -p /var/run/wireguard /etc/wireguard /app/database \
     && chmod 700 /etc/wireguard
 
 EXPOSE 51820/udp

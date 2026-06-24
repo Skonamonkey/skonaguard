@@ -8,7 +8,8 @@ use SkonaGuard\Models\Database;
 
 class DnsService
 {
-    private const HOSTS_FILE = '/etc/dnsproxy/skonaguard.hosts';
+    private const HOSTS_FILE = '/etc/hosts';
+    private const MARKER     = 'SKONAGUARD';
 
     public function __construct(private Database $db) {}
 
@@ -42,7 +43,7 @@ class DnsService
     public function generateHostsFile(): void
     {
         if (!$this->isEnabled()) {
-            file_put_contents(self::HOSTS_FILE, '');
+            $this->writeMarkerBlock('');
             return;
         }
 
@@ -85,7 +86,30 @@ class DnsService
             }
         }
 
-        $content = implode("\n", $lines);
-        file_put_contents(self::HOSTS_FILE, $content ? $content . "\n" : '');
+        $this->writeMarkerBlock(implode("\n", $lines));
+    }
+
+    private function writeMarkerBlock(string $block): void
+    {
+        $path    = self::HOSTS_FILE;
+        $marker  = self::MARKER;
+        $begin   = "# {$marker} BEGIN";
+        $end     = "# {$marker} END";
+        $current = file_exists($path) ? (string) file_get_contents($path) : '';
+
+        if (str_contains($current, $begin)) {
+            $current = (string) preg_replace(
+                '/' . preg_quote($begin, '/') . '.*?' . preg_quote($end, '/') . '\n?/s',
+                '',
+                $current
+            );
+        }
+
+        $current = rtrim($current);
+        if ($block !== '') {
+            $current .= "\n{$begin}\n{$block}\n{$end}\n";
+        }
+
+        file_put_contents($path, $current);
     }
 }
