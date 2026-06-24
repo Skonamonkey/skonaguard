@@ -50,7 +50,7 @@ exec dnsproxy \
     "${UPSTREAM_ARGS[@]}" \
     --bootstrap=9.9.9.9:53 \
     --bootstrap=8.8.8.8:53 \
-    --hosts-file-enabled \
+    --hosts-file-enabled=true \
     --private-subnets="${WG_SUBNET}" \
     --cache \
     --cache-size=4096

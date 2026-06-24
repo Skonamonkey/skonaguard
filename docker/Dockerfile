@@ -7,7 +7,7 @@ RUN git clone https://github.com/WireGuard/wireguard-go.git /tmp/wireguard-go \
 FROM golang:1.23-alpine AS dnsproxy-builder
 ARG TARGETARCH=amd64
 RUN apk add --no-cache git
-RUN DNSPROXY_VER=0.73.1 && \
+RUN DNSPROXY_VER=0.81.2 && \
     ARCH="${TARGETARCH}" && \
     wget -qO /tmp/dnsproxy.tar.gz \
       "https://github.com/AdguardTeam/dnsproxy/releases/download/v${DNSPROXY_VER}/dnsproxy-linux-${ARCH}-v${DNSPROXY_VER}.tar.gz" && \
