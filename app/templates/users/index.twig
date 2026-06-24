@@ -211,6 +211,9 @@
 
 {% block scripts %}
 <script>
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
 function toggleZonePicker(id, role) {
     document.getElementById(id).style.display = role === 'zone_admin' ? 'block' : 'none';
 }
