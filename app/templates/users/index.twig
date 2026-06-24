@@ -55,7 +55,7 @@
                             {% set zids = user.zone_ids|split(',') %}
                             {% set znames = [] %}
                             {% for z in zones %}
-                                {% if z.id|string in zids %}
+                                {% if (z.id ~ '') in zids %}
                                     {% set znames = znames|merge([z.name]) %}
                                 {% endif %}
                             {% endfor %}
