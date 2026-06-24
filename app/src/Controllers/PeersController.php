@@ -59,7 +59,7 @@ class PeersController
         $isGateway     = isset($body['is_gateway']) ? 1 : ($profile ? (int) ($profile['is_gateway'] ?? 0) : 0);
         $gatewaySubnet = trim($body['gateway_subnet'] ?? '');
         $customAllowed = trim($body['custom_allowed_ips'] ?? '');
-        $hostname      = strtolower(trim($body['hostname'] ?? ''));
+        $hostname      = strtolower(trim($body['hostname'] ?? '')) ?: $this->slugify($name);
         $dnsAlias      = strtolower(trim($body['dns_alias'] ?? ''));
 
         if ($profile) {
@@ -109,7 +109,7 @@ class PeersController
         $isGateway     = isset($body['is_gateway']) ? 1 : 0;
         $gatewaySubnet = trim($body['gateway_subnet'] ?? '');
         $customAllowed = trim($body['custom_allowed_ips'] ?? '');
-        $hostname      = strtolower(trim($body['hostname'] ?? ''));
+        $hostname      = strtolower(trim($body['hostname'] ?? '')) ?: $this->slugify($name);
         $dnsAlias      = strtolower(trim($body['dns_alias'] ?? ''));
         $enabled       = isset($body['enabled']) ? 1 : 0;
 
@@ -145,6 +145,7 @@ class PeersController
         if ($peer) {
             $this->db->execute("DELETE FROM peers WHERE id = ?", [$id]);
             $this->wg->syncConfig();
+            try { $this->dns->generateHostsFile(); } catch (\Throwable) {}
             $_SESSION['flash_success'] = "Peer \"{$peer['name']}\" deleted.";
         }
         return $response->withHeader('Location', '/peers')->withStatus(302);
@@ -291,6 +292,14 @@ class PeersController
 
         $response->getBody()->write(json_encode(['conflicts' => $conflicts]));
         return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    private function slugify(string $name): string
+    {
+        $slug = strtolower(trim($name));
+        $slug = preg_replace('/[^a-z0-9]+/', '-', $slug);
+        $slug = trim($slug, '-');
+        return $slug ?: 'peer';
     }
 
     private function subnetsOverlap(string $subnetA, string $subnetB): bool

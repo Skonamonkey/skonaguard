@@ -42,11 +42,6 @@ class DnsService
 
     public function generateHostsFile(): void
     {
-        if (!$this->isEnabled()) {
-            $this->writeMarkerBlock('');
-            return;
-        }
-
         $domain = ltrim($this->getDomain(), '.');
         $lines  = [];
 

@@ -32,12 +32,6 @@ if (!file_exists($dbPath)) {
 
 $db = new PDO('sqlite:' . $dbPath, null, null, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
 
-$enabled = $db->query("SELECT value FROM settings WHERE key = 'dns_enabled'")->fetchColumn();
-if ($enabled !== '1') {
-    replaceMarkerBlock($hostsFile, $marker, '');
-    exit(0);
-}
-
 $domain = trim((string) ($db->query("SELECT value FROM settings WHERE key = 'dns_domain'")->fetchColumn() ?: 'skona'));
 $domain = ltrim($domain, '.');
 
