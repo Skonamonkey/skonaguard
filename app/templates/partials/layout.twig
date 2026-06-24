@@ -212,8 +212,8 @@
             <div class="topbar-title">{% block page_title %}{% endblock %}</div>
             <div class="topbar-right">
                 <div class="user-badge">
-                    <div class="user-avatar">{{ session.username|first|upper }}</div>
-                    <span>{{ session.username }}</span>
+                    <div class="user-avatar">{{ (session.display_name ?: session.username)|first|upper }}</div>
+                    <span>{{ session.display_name ?: session.username }}</span>
                 </div>
                 <a href="/logout" class="topbar-logout">Sign out</a>
             </div>

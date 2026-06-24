@@ -191,7 +191,16 @@
                         <span class="peer-dot offline" title="Never connected"></span>
                     {% endif %}
                 </td>
-                <td style="color:var(--text-primary); font-weight:500;">{{ peer.name }}</td>
+                <td style="color:var(--text-primary); font-weight:500;">
+                    {{ peer.name }}
+                    {% if peer.hostname or peer.dns_alias %}
+                    <br><small style="color:var(--text-muted); font-family:monospace; font-size:0.7rem">
+                        {{- peer.hostname -}}
+                        {%- if peer.hostname and peer.dns_alias %} &middot; {% endif -%}
+                        {{- peer.dns_alias -}}
+                    </small>
+                    {% endif %}
+                </td>
                 <td><span class="badge badge-blue">{{ peer.zone_name }}</span></td>
                 <td style="font-family:monospace; font-size:0.75rem;">{{ peer.vpn_ip }}</td>
                 <td class="peer-endpoint" style="font-family:monospace; font-size:0.75rem; color:var(--text-muted);">

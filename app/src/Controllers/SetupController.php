@@ -168,10 +168,11 @@ class SetupController
         $_ENV['SETUP_COMPLETE'] = 'true';
 
         $_SESSION['setup_data'] = [];
-        $_SESSION['user_id']    = $this->db->queryOne("SELECT id FROM users WHERE username = ?", [$data['username']])['id'];
-        $_SESSION['username']   = $data['username'];
-        $_SESSION['role']       = 'superadmin';
-        $_SESSION['zone_ids']   = null;
+        $_SESSION['user_id']      = $this->db->queryOne("SELECT id FROM users WHERE username = ?", [$data['username']])['id'];
+        $_SESSION['username']     = $data['username'];
+        $_SESSION['display_name'] = null;
+        $_SESSION['role']         = 'superadmin';
+        $_SESSION['zone_ids']     = null;
 
         return $response->withHeader('Location', '/dashboard')->withStatus(302);
     }
