@@ -28,7 +28,7 @@ class PeersController
         if ($role === 'zone_admin' && is_array($zoneIds) && count($zoneIds) > 0) {
             $placeholders = implode(',', array_fill(0, count($zoneIds), '?'));
             $peers = $this->db->query("
-                SELECT p.*, z.name as zone_name, z.subnet as zone_subnet, pr.name as profile_name
+                SELECT p.*, z.name as zone_name, z.subnet as zone_subnet, z.dns_name as zone_dns_name, pr.name as profile_name
                 FROM peers p
                 JOIN zones z ON z.id = p.zone_id
                 LEFT JOIN profiles pr ON pr.id = p.profile_id
@@ -38,7 +38,7 @@ class PeersController
             $zones = $this->db->query("SELECT * FROM zones WHERE id IN ($placeholders) ORDER BY name", $zoneIds);
         } else {
             $peers = $this->db->query("
-                SELECT p.*, z.name as zone_name, z.subnet as zone_subnet, pr.name as profile_name
+                SELECT p.*, z.name as zone_name, z.subnet as zone_subnet, z.dns_name as zone_dns_name, pr.name as profile_name
                 FROM peers p
                 JOIN zones z ON z.id = p.zone_id
                 LEFT JOIN profiles pr ON pr.id = p.profile_id
@@ -47,15 +47,17 @@ class PeersController
             $zones = $this->db->query("SELECT * FROM zones ORDER BY name");
         }
 
-        $profiles = $this->db->query("SELECT * FROM profiles ORDER BY name");
-        $lanIp    = $this->db->queryOne("SELECT value FROM settings WHERE key = 'server_lan_ip'")['value'] ?? '';
+        $profiles  = $this->db->query("SELECT * FROM profiles ORDER BY name");
+        $lanIp     = $this->db->queryOne("SELECT value FROM settings WHERE key = 'server_lan_ip'")['value'] ?? '';
+        $dnsDomain = ltrim($this->db->queryOne("SELECT value FROM settings WHERE key = 'dns_domain'")['value'] ?? 'skona', '.');
 
         return $this->view->render($response, 'peers/index.twig', [
-            'active_nav'      => 'peers',
-            'peers'           => $peers,
-            'zones'           => $zones,
-            'profiles'        => $profiles,
+            'active_nav'       => 'peers',
+            'peers'            => $peers,
+            'zones'            => $zones,
+            'profiles'         => $profiles,
             'has_lan_endpoint' => $lanIp !== '',
+            'dns_domain'       => $dnsDomain,
         ]);
     }
 

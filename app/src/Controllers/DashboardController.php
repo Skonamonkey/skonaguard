@@ -55,10 +55,11 @@ class DashboardController
         $enabledPeers   = $this->db->queryOne("SELECT COUNT(*) as c FROM peers WHERE enabled = 1")['c'] ?? 0;
 
         $dbPeers = $this->db->query(
-            "SELECT p.*, z.name as zone_name FROM peers p 
+            "SELECT p.*, z.name as zone_name, z.dns_name as zone_dns_name FROM peers p 
              LEFT JOIN zones z ON z.id = p.zone_id 
              ORDER BY p.name"
         );
+        $dnsDomain = $this->db->queryOne("SELECT value FROM settings WHERE key = 'dns_domain'")['value'] ?? 'skona';
 
         $wgStats = $this->parseWgDump();
 
@@ -84,6 +85,7 @@ class DashboardController
             'enabled_peers'   => $enabledPeers,
             'connected_peers' => $connectedCount,
             'peers'           => $peers,
+            'dns_domain'      => ltrim($dnsDomain, '.'),
         ]);
     }
 
