@@ -76,6 +76,11 @@ class WireGuardService
             if ($dnsEnabled) {
                 $hubIp = trim((string) shell_exec("ip -4 addr show wg0 2>/dev/null | grep -oP '(?<=inet )[\d.]+' | head -1"));
                 $dns   = $hubIp ?: ($_ENV['WG_SUBNET_HUB'] ?? '172.16.0.1');
+                $wgSubnet    = $_ENV['WG_SUBNET'] ?? ($this->db->queryOne("SELECT value FROM settings WHERE key = 'wg_subnet'")['value'] ?? '172.16.0.0/16');
+                $reverseZone = $this->buildReverseZone($wgSubnet);
+                if ($reverseZone !== '') {
+                    $dns .= ', ~' . $reverseZone;
+                }
             }
         }
 
@@ -312,5 +317,17 @@ class WireGuardService
     {
         $out = trim((string) shell_exec("ip route get 8.8.8.8 2>/dev/null | awk '/dev/{for(i=1;i<=NF;i++) if(\$i==\"dev\") print \$(i+1)}'"));
         return $out ?: 'eth0';
+    }
+
+    private function buildReverseZone(string $subnet): string
+    {
+        if (!str_contains($subnet, '/')) {
+            return '';
+        }
+        [$network, $prefix] = explode('/', $subnet, 2);
+        $octets = explode('.', $network);
+        $count  = (int) ceil((int) $prefix / 8);
+        $count  = max(1, min(4, $count));
+        return implode('.', array_reverse(array_slice($octets, 0, $count))) . '.in-addr.arpa';
     }
 }
