@@ -18,6 +18,7 @@ function replaceMarkerBlock(string $path, string $marker, string $block): void
 
     $current = rtrim($current);
     if ($block !== '') {
+        $block = implode("\n", array_filter(array_map('trim', explode("\n", $block))));
         $current .= "\n{$begin}\n{$block}\n{$end}\n";
     }
 
