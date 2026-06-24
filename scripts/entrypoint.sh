@@ -31,7 +31,7 @@ if [ ! -f /etc/wireguard/wg0.conf ]; then
     cat > /etc/wireguard/wg0.conf <<EOF
 [Interface]
 PrivateKey = $WG_PRIVATE
-Address = ${WG_SUBNET_HUB:-172.16.0.1}/16
+Address = ${WG_SUBNET_HUB:-172.16.0.1}/$(echo "${WG_SUBNET:-172.16.0.0/16}" | cut -d/ -f2)
 ListenPort = ${WG_PORT:-51820}
 EOF
     chmod 600 /etc/wireguard/wg0.conf

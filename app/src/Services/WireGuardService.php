@@ -66,7 +66,7 @@ class WireGuardService
         [$network, $prefix] = explode('/', $peer['zone_subnet']);
         $clientAddress = $peer['vpn_ip'] . '/' . $prefix;
 
-        $allowedIps = $peer['custom_allowed_ips'] ?? ($profile['custom_allowed_ips'] ?? null) ?? '172.16.0.0/16';
+        $allowedIps = $peer['custom_allowed_ips'] ?? ($profile['custom_allowed_ips'] ?? null) ?? ($_ENV['WG_SUBNET'] ?? '172.16.0.0/16');
         $dns        = $peer['dns'] ?? ($profile['dns'] ?? '') ?? '';
 
         $conf  = "[Interface]\n";

@@ -75,6 +75,39 @@ echo ""
 echo -e "${BLUE}Starting SkonaGuard...${NC}"
 docker compose up -d --build
 
+echo -e "${BLUE}Adding host route so VPN peer IPs are preserved in audit logs...${NC}"
+INSTALL_DIR=$(realpath .)
+CONTAINER_IP=$(docker inspect skonaguard --format '{{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}}' 2>/dev/null | tr ' ' '\n' | grep -v '^$' | head -1)
+if [ -n "$CONTAINER_IP" ]; then
+    ip route replace "${WG_SUBNET}" via "${CONTAINER_IP}" 2>/dev/null || true
+    echo -e "  Route added: ${WG_SUBNET} via ${CONTAINER_IP}"
+else
+    echo -e "${RED}  Warning: could not detect container IP — route not added${NC}"
+fi
+
+UNIT_FILE=/etc/systemd/system/skonaguard-route.service
+cat > "$UNIT_FILE" << 'UNIT'
+[Unit]
+Description=SkonaGuard host route for VPN peer IP preservation
+After=docker.service
+Wants=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStartPre=/bin/sleep 3
+ExecStart=/bin/bash -c 'WG_SUBNET=$(grep "^WG_SUBNET=" __INSTALL_DIR__/.env | cut -d= -f2); CIP=$(docker inspect skonaguard --format "{{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}}" 2>/dev/null | tr " " "\n" | grep -v "^$" | head -1); [ -n "$WG_SUBNET" ] && [ -n "$CIP" ] && ip route replace "$WG_SUBNET" via "$CIP"'
+ExecStop=/bin/bash -c 'WG_SUBNET=$(grep "^WG_SUBNET=" __INSTALL_DIR__/.env | cut -d= -f2); [ -n "$WG_SUBNET" ] && ip route del "$WG_SUBNET" 2>/dev/null; true'
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+sed -i "s|__INSTALL_DIR__|${INSTALL_DIR}|g" "$UNIT_FILE"
+systemctl daemon-reload
+systemctl enable skonaguard-route.service
+echo -e "  Systemd unit enabled: skonaguard-route.service"
+
 echo ""
 echo -e "${GREEN}${BOLD}SkonaGuard is running!${NC}"
 echo ""
