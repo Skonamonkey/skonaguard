@@ -8,12 +8,14 @@ use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
 use SkonaGuard\Models\Database;
+use SkonaGuard\Services\DnsService;
 
 class ZonesController
 {
     public function __construct(
         private Twig $view,
-        private Database $db
+        private Database $db,
+        private DnsService $dns
     ) {}
 
     public function index(Request $request, Response $response): Response
@@ -27,10 +29,11 @@ class ZonesController
 
     public function store(Request $request, Response $response): Response
     {
-        $body   = (array) $request->getParsedBody();
-        $name   = trim($body['name'] ?? '');
-        $subnet = trim($body['subnet'] ?? '');
-        $desc   = trim($body['description'] ?? '');
+        $body    = (array) $request->getParsedBody();
+        $name    = trim($body['name'] ?? '');
+        $subnet  = trim($body['subnet'] ?? '');
+        $desc    = trim($body['description'] ?? '');
+        $dnsName = strtolower(trim($body['dns_name'] ?? ''));
 
         if (!$name || !$subnet) {
             $_SESSION['flash_error'] = 'Name and subnet are required.';
@@ -44,10 +47,11 @@ class ZonesController
 
         try {
             $this->db->execute(
-                "INSERT INTO zones (name, subnet, description) VALUES (?, ?, ?)",
-                [$name, $subnet, $desc ?: null]
+                "INSERT INTO zones (name, subnet, description, dns_name) VALUES (?, ?, ?, ?)",
+                [$name, $subnet, $desc ?: null, $dnsName ?: null]
             );
             $_SESSION['flash_success'] = "Zone \"{$name}\" created.";
+            try { $this->dns->generateHostsFile(); } catch (\Throwable) {}
         } catch (\Exception $e) {
             $_SESSION['flash_error'] = 'A zone with that name or subnet already exists.';
         }
@@ -63,10 +67,11 @@ class ZonesController
             return $response->withHeader('Location', '/zones')->withStatus(302);
         }
 
-        $body   = (array) $request->getParsedBody();
-        $name   = trim($body['name'] ?? '');
-        $subnet = trim($body['subnet'] ?? '');
-        $desc   = trim($body['description'] ?? '');
+        $body    = (array) $request->getParsedBody();
+        $name    = trim($body['name'] ?? '');
+        $subnet  = trim($body['subnet'] ?? '');
+        $desc    = trim($body['description'] ?? '');
+        $dnsName = strtolower(trim($body['dns_name'] ?? ''));
 
         if (!$name || !$subnet) {
             $_SESSION['flash_error'] = 'Name and subnet are required.';
@@ -80,10 +85,11 @@ class ZonesController
 
         try {
             $this->db->execute(
-                "UPDATE zones SET name = ?, subnet = ?, description = ? WHERE id = ?",
-                [$name, $subnet, $desc ?: null, $id]
+                "UPDATE zones SET name = ?, subnet = ?, description = ?, dns_name = ? WHERE id = ?",
+                [$name, $subnet, $desc ?: null, $dnsName ?: null, $id]
             );
             $_SESSION['flash_success'] = "Zone updated.";
+            try { $this->dns->generateHostsFile(); } catch (\Throwable) {}
         } catch (\Exception $e) {
             $_SESSION['flash_error'] = 'A zone with that name or subnet already exists.';
         }

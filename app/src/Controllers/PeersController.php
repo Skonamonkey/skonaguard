@@ -8,6 +8,7 @@ use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
 use SkonaGuard\Models\Database;
+use SkonaGuard\Services\DnsService;
 use SkonaGuard\Services\WireGuardService;
 
 class PeersController
@@ -15,7 +16,8 @@ class PeersController
     public function __construct(
         private Twig $view,
         private Database $db,
-        private WireGuardService $wg
+        private WireGuardService $wg,
+        private DnsService $dns
     ) {}
 
     public function index(Request $request, Response $response): Response
@@ -53,13 +55,15 @@ class PeersController
         }
 
         $zoneId        = (int) ($body['zone_id'] ?? ($profile['zone_id'] ?? 0));
-        $dns           = trim($body['dns'] ?? '');
+        $dnsServer     = trim($body['dns'] ?? '');
         $isGateway     = isset($body['is_gateway']) ? 1 : ($profile ? (int) ($profile['is_gateway'] ?? 0) : 0);
         $gatewaySubnet = trim($body['gateway_subnet'] ?? '');
         $customAllowed = trim($body['custom_allowed_ips'] ?? '');
+        $hostname      = strtolower(trim($body['hostname'] ?? ''));
+        $dnsAlias      = strtolower(trim($body['dns_alias'] ?? ''));
 
         if ($profile) {
-            $dns           = $dns ?: '';
+            $dnsServer     = $dnsServer ?: '';
             $isGateway     = isset($body['is_gateway']) ? 1 : (int) ($profile['is_gateway'] ?? 0);
             $gatewaySubnet = $gatewaySubnet ?: '';
             $customAllowed = $customAllowed ?: '';
@@ -75,16 +79,18 @@ class PeersController
             $vpnIp = $this->wg->allocateIp($zoneId);
 
             $this->db->execute("
-                INSERT INTO peers (name, zone_id, profile_id, vpn_ip, public_key, private_key, preshared_key, dns, notes, is_gateway, gateway_subnet, custom_allowed_ips, enabled)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+                INSERT INTO peers (name, zone_id, profile_id, vpn_ip, public_key, private_key, preshared_key, dns, notes, is_gateway, gateway_subnet, custom_allowed_ips, hostname, dns_alias, enabled)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
             ", [
                 $name, $zoneId, $profileId, $vpnIp,
                 $keys['public'], $keys['private'], $keys['preshared'],
-                $dns ?: null, $notes ?: null,
+                $dnsServer ?: null, $notes ?: null,
                 $isGateway, $gatewaySubnet ?: null, $customAllowed ?: null,
+                $hostname ?: null, $dnsAlias ?: null,
             ]);
 
             $this->wg->syncConfig();
+            try { $this->dns->generateHostsFile(); } catch (\Throwable) {}
             $_SESSION['flash_success'] = "Peer \"{$name}\" created.";
         } catch (\Exception $e) {
             $_SESSION['flash_error'] = 'Error creating peer: ' . $e->getMessage();
@@ -95,14 +101,16 @@ class PeersController
 
     public function update(Request $request, Response $response, string $id): Response
     {
-        $body   = (array) $request->getParsedBody();
-        $name   = trim($body['name'] ?? '');
+        $body          = (array) $request->getParsedBody();
+        $name          = trim($body['name'] ?? '');
         $profileId     = ($body['profile_id'] ?? '') !== '' ? (int) $body['profile_id'] : null;
-        $dns           = trim($body['dns'] ?? '');
+        $dnsServer     = trim($body['dns'] ?? '');
         $notes         = trim($body['notes'] ?? '');
         $isGateway     = isset($body['is_gateway']) ? 1 : 0;
         $gatewaySubnet = trim($body['gateway_subnet'] ?? '');
         $customAllowed = trim($body['custom_allowed_ips'] ?? '');
+        $hostname      = strtolower(trim($body['hostname'] ?? ''));
+        $dnsAlias      = strtolower(trim($body['dns_alias'] ?? ''));
         $enabled       = isset($body['enabled']) ? 1 : 0;
 
         if (!$name) {
@@ -112,15 +120,17 @@ class PeersController
 
         try {
             $this->db->execute("
-                UPDATE peers SET name = ?, profile_id = ?, dns = ?, notes = ?, is_gateway = ?, gateway_subnet = ?, custom_allowed_ips = ?, enabled = ?
+                UPDATE peers SET name = ?, profile_id = ?, dns = ?, notes = ?, is_gateway = ?, gateway_subnet = ?, custom_allowed_ips = ?, hostname = ?, dns_alias = ?, enabled = ?
                 WHERE id = ?
             ", [
-                $name, $profileId, $dns ?: null, $notes ?: null,
+                $name, $profileId, $dnsServer ?: null, $notes ?: null,
                 $isGateway, $gatewaySubnet ?: null, $customAllowed ?: null,
+                $hostname ?: null, $dnsAlias ?: null,
                 $enabled, $id,
             ]);
 
             $this->wg->syncConfig();
+            try { $this->dns->generateHostsFile(); } catch (\Throwable) {}
             $_SESSION['flash_success'] = "Peer updated.";
         } catch (\Exception $e) {
             $_SESSION['flash_error'] = 'Error updating peer: ' . $e->getMessage();

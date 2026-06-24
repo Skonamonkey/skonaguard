@@ -107,6 +107,9 @@ $alterations = [
     "ALTER TABLE profiles ADD COLUMN is_gateway INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE profiles ADD COLUMN gateway_subnet TEXT",
     "ALTER TABLE zones ADD COLUMN is_system INTEGER NOT NULL DEFAULT 0",
+    "ALTER TABLE zones ADD COLUMN dns_name TEXT",
+    "ALTER TABLE peers ADD COLUMN hostname TEXT",
+    "ALTER TABLE peers ADD COLUMN dns_alias TEXT",
 ];
 foreach ($alterations as $sql) {
     try { $pdo->exec($sql); } catch (\Exception $e) { /* column already exists */ }
@@ -118,5 +121,14 @@ $stmt = $pdo->prepare("INSERT OR IGNORE INTO zones (name, subnet, description, i
 $stmt->execute([$hostSubnet]);
 $stmt = $pdo->prepare("UPDATE zones SET subnet = ?, is_system = 1 WHERE name = 'Host'");
 $stmt->execute([$hostSubnet]);
+
+$dnsDefaults = [
+    ['dns_enabled',  '0'],
+    ['dns_domain',   'skona'],
+    ['dns_upstream', '9.9.9.9'],
+];
+foreach ($dnsDefaults as [$key, $val]) {
+    $pdo->prepare("INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)")->execute([$key, $val]);
+}
 
 echo "Database migrated successfully.\n";

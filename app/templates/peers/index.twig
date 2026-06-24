@@ -199,6 +199,16 @@
                             Advanced options
                         </button>
                         <div id="add-advanced" style="display:none; margin-top:10px; padding:14px; background:var(--surface-input); border:1px solid var(--border-input); border-radius:var(--radius-sm)">
+                            <div class="form-group" style="margin-bottom:14px">
+                                <label>Hostname <span style="color:var(--text-muted)">(DNS — optional)</span></label>
+                                <input type="text" name="hostname" id="add-hostname" placeholder="e.g. proxmox" pattern="[a-z0-9\-]+" title="Lowercase letters, numbers and hyphens only">
+                                <small style="color:var(--text-muted)">Resolved as <code>hostname.zone.suffix</code> when DNS is enabled.</small>
+                            </div>
+                            <div class="form-group" style="margin-bottom:14px">
+                                <label>Short Alias <span style="color:var(--text-muted)">(DNS — optional)</span></label>
+                                <input type="text" name="dns_alias" id="add-dns-alias" placeholder="e.g. dev-server" pattern="[a-z0-9\-]+" title="Lowercase letters, numbers and hyphens only">
+                                <small style="color:var(--text-muted)">Direct short name: <code>alias.suffix</code></small>
+                            </div>
                             <div class="form-group">
                                 <label>DNS Override <span style="color:var(--text-muted)">(full-tunnel mode only)</span></label>
                                 <input type="text" name="dns" id="add-dns" placeholder="e.g. 1.1.1.1 — leave blank for normal use">
@@ -256,6 +266,16 @@
                         Advanced options
                     </button>
                     <div id="edit-advanced" style="display:none; margin-top:10px; padding:14px; background:var(--surface-input); border:1px solid var(--border-input); border-radius:var(--radius-sm)">
+                        <div class="form-group" style="margin-bottom:14px">
+                            <label>Hostname <span style="color:var(--text-muted)">(DNS — optional)</span></label>
+                            <input type="text" id="edit-hostname" name="hostname" placeholder="e.g. proxmox" pattern="[a-z0-9\-]+" title="Lowercase letters, numbers and hyphens only">
+                            <small style="color:var(--text-muted)">Resolved as <code>hostname.zone.suffix</code> when DNS is enabled.</small>
+                        </div>
+                        <div class="form-group" style="margin-bottom:14px">
+                            <label>Short Alias <span style="color:var(--text-muted)">(DNS — optional)</span></label>
+                            <input type="text" id="edit-dns-alias" name="dns_alias" placeholder="e.g. dev-server" pattern="[a-z0-9\-]+" title="Lowercase letters, numbers and hyphens only">
+                            <small style="color:var(--text-muted)">Direct short name: <code>alias.suffix</code></small>
+                        </div>
                         <div class="form-group">
                             <label>DNS Override <span style="color:var(--text-muted)">(full-tunnel mode only)</span></label>
                             <input type="text" id="edit-dns" name="dns" placeholder="e.g. 1.1.1.1 — leave blank for normal use">
@@ -499,6 +519,8 @@ function openEditModal(peer) {
     document.getElementById('edit-name').value           = peer.name;
     document.getElementById('edit-zone').value           = peer.zone_name + ' (' + peer.zone_subnet + ')';
     document.getElementById('edit-dns').value            = peer.dns ?? '';
+    document.getElementById('edit-hostname').value       = peer.hostname ?? '';
+    document.getElementById('edit-dns-alias').value      = peer.dns_alias ?? '';
     document.getElementById('edit-notes').value          = peer.notes ?? '';
     document.getElementById('edit-allowed').value        = peer.custom_allowed_ips ?? '';
     document.getElementById('edit-enabled').checked      = peer.enabled == 1;

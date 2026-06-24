@@ -69,6 +69,14 @@ class WireGuardService
         $allowedIps = $peer['custom_allowed_ips'] ?? ($profile['custom_allowed_ips'] ?? null) ?? ($_ENV['WG_SUBNET'] ?? '172.16.0.0/16');
         $dns        = $peer['dns'] ?? ($profile['dns'] ?? '') ?? '';
 
+        if ($dns === '') {
+            $dnsEnabled = ($this->db->queryOne("SELECT value FROM settings WHERE key = 'dns_enabled'")['value'] ?? '0') === '1';
+            if ($dnsEnabled) {
+                $hubIp = trim((string) shell_exec("ip -4 addr show wg0 2>/dev/null | grep -oP '(?<=inet )[\d.]+' | head -1"));
+                $dns   = $hubIp ?: ($_ENV['WG_SUBNET_HUB'] ?? '172.16.0.1');
+            }
+        }
+
         $conf  = "[Interface]\n";
         $conf .= "PrivateKey = {$peer['private_key']}\n";
         $conf .= "Address = {$clientAddress}\n";

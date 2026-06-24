@@ -5,6 +5,7 @@ declare(strict_types=1);
 use DI\ContainerBuilder;
 use Slim\Views\Twig;
 use SkonaGuard\Models\Database;
+use SkonaGuard\Services\DnsService;
 use SkonaGuard\Services\WireGuardService;
 
 $builder = new ContainerBuilder();
@@ -26,6 +27,10 @@ $builder->addDefinitions([
 
     Database::class => function () {
         return new Database($_ENV['DB_PATH'] ?? APP_ROOT . '/database/skonaguard.db');
+    },
+
+    DnsService::class => function (\Psr\Container\ContainerInterface $c) {
+        return new DnsService($c->get(Database::class));
     },
 
     WireGuardService::class => function (\Psr\Container\ContainerInterface $c) {

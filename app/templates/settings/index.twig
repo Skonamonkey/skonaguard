@@ -146,6 +146,47 @@
     </div>
 </div>
 
+<!-- DNS Server -->
+<div class="card" style="grid-column:1/-1">
+    <div class="card-header">
+        <div class="card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+            DNS Server
+        </div>
+    </div>
+    <div class="card-body">
+        <p style="color:var(--text-muted); font-size:0.875rem; margin-bottom:16px">
+            Optional built-in DNS server (dnsproxy). When enabled, peers can resolve each other by name — e.g. <code>proxmox.home.skona</code>. Forwards all other queries to your chosen upstream. The DNS IP is always reachable by all peers regardless of ACL rules.
+        </p>
+        <form method="POST" action="/settings">
+            <input type="hidden" name="action" value="dns">
+            <label style="display:flex; align-items:center; gap:12px; cursor:pointer; margin-bottom:20px">
+                <div style="position:relative; width:44px; height:24px; flex-shrink:0">
+                    <input type="checkbox" name="dns_enabled" id="dns-toggle" value="1" style="opacity:0; width:0; height:0; position:absolute"
+                        {{ (settings.dns_enabled ?? '0') == '1' ? 'checked' : '' }}>
+                    <span id="dns-track" style="position:absolute; inset:0; border-radius:12px; background:{{ (settings.dns_enabled ?? '0') == '1' ? 'var(--color-primary)' : 'var(--border-color)' }}; transition:background 0.2s">
+                        <span id="dns-thumb" style="position:absolute; top:3px; left:{{ (settings.dns_enabled ?? '0') == '1' ? '23px' : '3px' }}; width:18px; height:18px; border-radius:50%; background:#fff; transition:left 0.2s"></span>
+                    </span>
+                </div>
+                <span style="font-weight:600">Enable DNS server</span>
+            </label>
+            <div class="form-row" style="margin-bottom:16px">
+                <div class="form-group">
+                    <label>Domain Suffix</label>
+                    <input type="text" name="dns_domain" value="{{ settings.dns_domain ?? 'skona' }}" placeholder="skona">
+                    <small style="color:var(--text-muted)">Peers resolve as <code>{hostname}.{zone}.{suffix}</code> — e.g. <code>proxmox.home.skona</code></small>
+                </div>
+                <div class="form-group">
+                    <label>Upstream Resolver</label>
+                    <input type="text" name="dns_upstream" value="{{ settings.dns_upstream ?? '9.9.9.9' }}" placeholder="9.9.9.9">
+                    <small style="color:var(--text-muted)">Plain: <code>9.9.9.9</code> &nbsp;|&nbsp; DoT: <code>tls://9.9.9.9</code> &nbsp;|&nbsp; DoH: <code>https://dns.quad9.net/dns-query</code></small>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary">Apply</button>
+        </form>
+    </div>
+</div>
+
 <!-- About -->
 <div class="card">
     <div class="card-header">
@@ -212,5 +253,16 @@ function updatePolicyHighlight() {
     if (restLabel) restLabel.style.borderColor = val === 'restrictive' ? 'var(--color-danger)' : 'var(--border-input)';
 }
 policyRadios.forEach(r => r.addEventListener('change', updatePolicyHighlight));
+
+const dnsToggle = document.getElementById('dns-toggle');
+const dnsTrack  = document.getElementById('dns-track');
+const dnsThumb  = document.getElementById('dns-thumb');
+if (dnsToggle) {
+    dnsToggle.addEventListener('change', () => {
+        const on = dnsToggle.checked;
+        dnsTrack.style.background = on ? 'var(--color-primary)' : 'var(--border-color)';
+        dnsThumb.style.left = on ? '23px' : '3px';
+    });
+}
 </script>
 {% endblock %}

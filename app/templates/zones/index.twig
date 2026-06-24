@@ -29,6 +29,7 @@
                 <tr>
                     <th>Name</th>
                     <th>Subnet</th>
+                    <th>DNS Name</th>
                     <th>Description</th>
                     <th>Peers</th>
                     <th>Created</th>
@@ -45,6 +46,7 @@
                         {% endif %}
                     </td>
                     <td><span class="badge badge-info">{{ zone.subnet }}</span></td>
+                    <td style="color:var(--text-muted); font-size:0.8rem">{{ zone.dns_name ? zone.dns_name ~ '.<em>suffix</em>' : '—' }}</td>
                     <td style="color:var(--text-secondary)">{{ zone.description ?? '—' }}</td>
                     <td>
                         <span class="badge {% if zone.peer_count > 0 %}badge-active{% else %}badge-offline{% endif %}">
@@ -57,7 +59,7 @@
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;opacity:0.35;vertical-align:middle" title="System zone — cannot be modified"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                         {% else %}
                             <button class="btn-icon" title="Edit"
-                                onclick='openEditModal({{ zone.id }}, {{ zone.name|json_encode }}, {{ zone.subnet|json_encode }}, {{ (zone.description ?? "")|json_encode }})'>
+                                onclick='openEditModal({{ zone.id }}, {{ zone.name|json_encode }}, {{ zone.subnet|json_encode }}, {{ (zone.description ?? "")|json_encode }}, {{ (zone.dns_name ?? "")|json_encode }})'>
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                             </button>
                             <button class="btn-icon danger" title="Delete"
@@ -98,9 +100,14 @@
                     <label for="add-subnet">Subnet (CIDR)</label>
                     <input type="text" id="add-subnet" name="subnet" placeholder="e.g. 172.16.2.0/24" required>
                 </div>
-                <div class="form-group">
+                <div class="form-group" style="margin-bottom:16px">
                     <label for="add-desc">Description <span style="color:var(--text-muted)">(optional)</span></label>
                     <input type="text" id="add-desc" name="description" placeholder="Short description">
+                </div>
+                <div class="form-group">
+                    <label for="add-dns-name">DNS Zone Label <span style="color:var(--text-muted)">(optional)</span></label>
+                    <input type="text" id="add-dns-name" name="dns_name" placeholder="e.g. home" pattern="[a-z0-9\-]+" title="Lowercase letters, numbers and hyphens only">
+                    <small style="color:var(--text-muted)">Used in peer hostnames: <code>machinename.home.skona</code></small>
                 </div>
             </div>
             <div class="modal-footer">
@@ -130,9 +137,14 @@
                     <label for="edit-subnet">Subnet (CIDR)</label>
                     <input type="text" id="edit-subnet" name="subnet" required>
                 </div>
-                <div class="form-group">
+                <div class="form-group" style="margin-bottom:16px">
                     <label for="edit-desc">Description</label>
                     <input type="text" id="edit-desc" name="description">
+                </div>
+                <div class="form-group">
+                    <label for="edit-dns-name">DNS Zone Label <span style="color:var(--text-muted)">(optional)</span></label>
+                    <input type="text" id="edit-dns-name" name="dns_name" placeholder="e.g. home" pattern="[a-z0-9\-]+" title="Lowercase letters, numbers and hyphens only">
+                    <small style="color:var(--text-muted)">Used in peer hostnames: <code>machinename.home.skona</code></small>
                 </div>
             </div>
             <div class="modal-footer">
@@ -174,11 +186,12 @@ function openModal(id) {
 function closeModal(id) {
     document.getElementById(id).classList.remove('open');
 }
-function openEditModal(id, name, subnet, desc) {
-    document.getElementById('edit-name').value   = name;
-    document.getElementById('edit-subnet').value = subnet;
-    document.getElementById('edit-desc').value   = desc;
-    document.getElementById('form-edit').action  = '/zones/' + id;
+function openEditModal(id, name, subnet, desc, dnsName) {
+    document.getElementById('edit-name').value     = name;
+    document.getElementById('edit-subnet').value   = subnet;
+    document.getElementById('edit-desc').value     = desc;
+    document.getElementById('edit-dns-name').value = dnsName || '';
+    document.getElementById('form-edit').action    = '/zones/' + id;
     openModal('modal-edit');
 }
 function confirmDelete(id, name) {

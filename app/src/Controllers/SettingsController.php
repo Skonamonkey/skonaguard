@@ -8,6 +8,7 @@ use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Views\Twig;
 use SkonaGuard\Models\Database;
+use SkonaGuard\Services\DnsService;
 use SkonaGuard\Services\WireGuardService;
 
 class SettingsController
@@ -15,7 +16,8 @@ class SettingsController
     public function __construct(
         private Twig $view,
         private Database $db,
-        private WireGuardService $wg
+        private WireGuardService $wg,
+        private DnsService $dns
     ) {}
 
     public function index(Request $request, Response $response): Response
@@ -42,6 +44,10 @@ class SettingsController
 
         if ($action === 'acl') {
             return $this->updateAcl($response, $body);
+        }
+
+        if ($action === 'dns') {
+            return $this->updateDns($response, $body);
         }
 
         $serverIp  = trim($body['server_public_ip'] ?? '');
@@ -81,6 +87,30 @@ class SettingsController
         } catch (\Throwable) {}
 
         $_SESSION['flash_success'] = 'ACL enforcement ' . ($enabled === '1' ? 'enabled' : 'disabled') . '.';
+        return $response->withHeader('Location', '/settings')->withStatus(302);
+    }
+
+    private function updateDns(Response $response, array $body): Response
+    {
+        $enabled  = isset($body['dns_enabled']) ? '1' : '0';
+        $domain   = trim($body['dns_domain'] ?? 'skona');
+        $upstream = trim($body['dns_upstream'] ?? '9.9.9.9');
+
+        $domain   = $domain   ?: 'skona';
+        $upstream = $upstream ?: '9.9.9.9';
+
+        $this->db->execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('dns_enabled', ?)",  [$enabled]);
+        $this->db->execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('dns_domain', ?)",   [$domain]);
+        $this->db->execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('dns_upstream', ?)", [$upstream]);
+
+        try {
+            $this->dns->sync();
+            if ($enabled === '1') {
+                $this->wg->syncConfig();
+            }
+        } catch (\Throwable) {}
+
+        $_SESSION['flash_success'] = 'DNS settings saved' . ($enabled === '1' ? ' — server restarting.' : ' — DNS disabled.');
         return $response->withHeader('Location', '/settings')->withStatus(302);
     }
 

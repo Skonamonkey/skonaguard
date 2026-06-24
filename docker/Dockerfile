@@ -4,6 +4,17 @@ RUN git clone https://github.com/WireGuard/wireguard-go.git /tmp/wireguard-go \
     && cd /tmp/wireguard-go \
     && go build -o /usr/local/bin/wireguard-go .
 
+FROM golang:1.23-alpine AS dnsproxy-builder
+ARG TARGETARCH=amd64
+RUN apk add --no-cache git
+RUN DNSPROXY_VER=0.73.1 && \
+    ARCH="${TARGETARCH}" && \
+    wget -qO /tmp/dnsproxy.tar.gz \
+      "https://github.com/AdguardTeam/dnsproxy/releases/download/v${DNSPROXY_VER}/dnsproxy-linux-${ARCH}-v${DNSPROXY_VER}.tar.gz" && \
+    tar -xzf /tmp/dnsproxy.tar.gz -C /tmp && \
+    mv /tmp/linux-${ARCH}/dnsproxy /usr/local/bin/dnsproxy && \
+    chmod +x /usr/local/bin/dnsproxy
+
 FROM php:8.2-fpm-alpine
 
 RUN apk add --no-cache \
@@ -21,6 +32,7 @@ RUN apk add --no-cache \
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
 COPY --from=wggo-builder /usr/local/bin/wireguard-go /usr/local/bin/wireguard-go
+COPY --from=dnsproxy-builder /usr/local/bin/dnsproxy /usr/local/bin/dnsproxy
 
 WORKDIR /app
 
@@ -37,8 +49,8 @@ COPY docker/supervisord.conf /etc/supervisord.conf
 COPY scripts/ /app/scripts/
 COPY scripts/entrypoint.sh /entrypoint.sh
 
-RUN chmod +x /entrypoint.sh /app/scripts/wg-start.sh \
-    && mkdir -p /var/run/wireguard /etc/wireguard /app/database \
+RUN chmod +x /entrypoint.sh /app/scripts/wg-start.sh /app/scripts/dns-start.sh \
+    && mkdir -p /var/run/wireguard /etc/wireguard /app/database /etc/dnsproxy \
     && chmod 700 /etc/wireguard
 
 EXPOSE 51820/udp
