@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS zones (
     name        TEXT    NOT NULL UNIQUE,
     subnet      TEXT    NOT NULL UNIQUE,
     description TEXT,
+    is_system   INTEGER NOT NULL DEFAULT 0,
     created_at  TEXT    NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -105,9 +106,17 @@ $alterations = [
     "ALTER TABLE profiles ADD COLUMN dns TEXT",
     "ALTER TABLE profiles ADD COLUMN is_gateway INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE profiles ADD COLUMN gateway_subnet TEXT",
+    "ALTER TABLE zones ADD COLUMN is_system INTEGER NOT NULL DEFAULT 0",
 ];
 foreach ($alterations as $sql) {
     try { $pdo->exec($sql); } catch (\Exception $e) { /* column already exists */ }
 }
+
+$hostIp     = $_ENV['WG_HOST_IP'] ?? getenv('WG_HOST_IP') ?: '172.16.0.2';
+$hostSubnet = $hostIp . '/32';
+$stmt = $pdo->prepare("INSERT OR IGNORE INTO zones (name, subnet, description, is_system) VALUES ('Host', ?, 'VPN host machine — managed by SkonaGuard', 1)");
+$stmt->execute([$hostSubnet]);
+$stmt = $pdo->prepare("UPDATE zones SET subnet = ?, is_system = 1 WHERE name = 'Host'");
+$stmt->execute([$hostSubnet]);
 
 echo "Database migrated successfully.\n";

@@ -57,6 +57,12 @@ class ZonesController
 
     public function update(Request $request, Response $response, string $id): Response
     {
+        $zone = $this->db->queryOne("SELECT * FROM zones WHERE id = ?", [$id]);
+        if ($zone && !empty($zone['is_system'])) {
+            $_SESSION['flash_error'] = "System zone \"{$zone['name']}\" cannot be modified.";
+            return $response->withHeader('Location', '/zones')->withStatus(302);
+        }
+
         $body   = (array) $request->getParsedBody();
         $name   = trim($body['name'] ?? '');
         $subnet = trim($body['subnet'] ?? '');
@@ -89,6 +95,11 @@ class ZonesController
     {
         $zone = $this->db->queryOne("SELECT * FROM zones WHERE id = ?", [$id]);
         if (!$zone) {
+            return $response->withHeader('Location', '/zones')->withStatus(302);
+        }
+
+        if (!empty($zone['is_system'])) {
+            $_SESSION['flash_error'] = "System zone \"{$zone['name']}\" cannot be deleted.";
             return $response->withHeader('Location', '/zones')->withStatus(302);
         }
 
