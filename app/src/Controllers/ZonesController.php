@@ -20,10 +20,12 @@ class ZonesController
 
     public function index(Request $request, Response $response): Response
     {
-        $zones = $this->db->query("SELECT z.*, COUNT(p.id) as peer_count FROM zones z LEFT JOIN peers p ON p.zone_id = z.id GROUP BY z.id ORDER BY z.name");
+        $zones     = $this->db->query("SELECT z.*, COUNT(p.id) as peer_count FROM zones z LEFT JOIN peers p ON p.zone_id = z.id GROUP BY z.id ORDER BY z.name");
+        $dnsDomain = ltrim($this->db->queryOne("SELECT value FROM settings WHERE key = 'dns_domain'")['value'] ?? 'skona', '.');
         return $this->view->render($response, 'zones/index.twig', [
             'active_nav' => 'zones',
             'zones'      => $zones,
+            'dns_domain' => $dnsDomain,
         ]);
     }
 

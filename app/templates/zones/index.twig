@@ -46,7 +46,7 @@
                         {% endif %}
                     </td>
                     <td><span class="badge badge-info">{{ zone.subnet }}</span></td>
-                    <td style="color:var(--text-muted); font-size:0.8rem">{{ zone.dns_name ? (zone.dns_name ~ '.<em>suffix</em>')|raw : '—' }}</td>
+                    <td style="color:var(--text-muted); font-size:0.8rem">{{ zone.dns_name ? zone.dns_name ~ '.' ~ dns_domain : '—' }}</td>
                     <td style="color:var(--text-secondary)">{{ zone.description ?? '—' }}</td>
                     <td>
                         <span class="badge {% if zone.peer_count > 0 %}badge-active{% else %}badge-offline{% endif %}">
