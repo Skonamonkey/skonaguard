@@ -22,12 +22,9 @@
             padding: 2rem;
         }
 
-        .wrap { width: 100%; max-width: 480px; }
+        .wrap { width: 100%; max-width: 460px; }
 
-        .login-logo {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
+        .login-logo { text-align: center; margin-bottom: 2rem; }
         .login-logo img { height: 52px; margin-bottom: 0.75rem; }
         .login-logo h1 { font-size: var(--font-xl); font-weight: 700; letter-spacing: -0.02em; }
         .login-logo p { color: var(--text-secondary); font-size: var(--font-sm); margin-top: 0.25rem; }
@@ -49,28 +46,13 @@
             margin-bottom: 1.25rem;
         }
 
-        h2 {
-            font-size: 1.1rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-        }
-
-        .steps {
-            counter-reset: steps;
-            list-style: none;
-            margin: 1.25rem 0;
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-        .steps li {
-            counter-increment: steps;
+        .step {
             display: flex;
             align-items: flex-start;
             gap: 0.75rem;
+            margin-bottom: 1.25rem;
         }
-        .steps li::before {
-            content: counter(steps);
+        .step-num {
             flex-shrink: 0;
             width: 24px;
             height: 24px;
@@ -82,29 +64,44 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-top: 1px;
+            margin-top: 2px;
+        }
+        .step-body {
+            flex: 1;
+            min-width: 0;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
         }
 
         .qr-wrap {
             text-align: center;
-            margin: 1.5rem 0;
+            margin: 1rem 0 0.75rem;
             padding: 1rem;
             background: #fff;
             border-radius: var(--radius-md);
+            display: inline-block;
+            width: 100%;
         }
-        #qr-canvas { display: block; margin: 0 auto; }
+        #qr-canvas { display: block; margin: 0 auto; max-width: 100%; }
 
-        .secret-wrap {
+        .secret-box {
             background: var(--surface-input);
             border: 1px solid var(--border-input);
             border-radius: var(--radius-sm);
-            padding: 0.65rem 1rem;
+            padding: 0.6rem 0.9rem;
             font-family: monospace;
-            font-size: 1rem;
-            letter-spacing: 0.1em;
+            font-size: 0.9rem;
+            letter-spacing: 0.12em;
             text-align: center;
             word-break: break-all;
-            margin-bottom: 1.5rem;
+            width: 100%;
+            margin-top: 0.5rem;
+        }
+
+        .divider {
+            border: none;
+            border-top: 1px solid var(--border-color);
+            margin: 1.5rem 0;
         }
 
         label {
@@ -151,19 +148,10 @@
         }
         .btn-primary:hover { background: var(--color-primary-hover); }
 
-        .back-link {
-            text-align: center;
-            margin-top: 1.5rem;
-            font-size: var(--font-sm);
-        }
+        .back-link { text-align: center; margin-top: 1.5rem; font-size: var(--font-sm); }
         .back-link a { color: var(--color-primary); text-decoration: none; }
 
-        .login-footer {
-            text-align: center;
-            margin-top: 1.5rem;
-            font-size: var(--font-sm);
-            color: var(--text-muted);
-        }
+        .login-footer { text-align: center; margin-top: 1.5rem; font-size: var(--font-sm); color: var(--text-muted); }
     </style>
 </head>
 <body>
@@ -179,21 +167,34 @@
             <div class="alert-error">{{ error }}</div>
         {% endif %}
 
-        <h2>Protect your account with an authenticator app</h2>
-        <p style="color:var(--text-muted); font-size:0.875rem; margin-top:0.35rem">Use any TOTP app — Google Authenticator, Aegis, Authy, 1Password, Bitwarden, etc.</p>
+        <div style="margin-bottom:1.25rem">
+            <strong style="font-size:1.05rem">Protect your account with an authenticator app</strong>
+            <p style="color:var(--text-muted); font-size:0.8rem; margin-top:0.3rem">Works with Google Authenticator, Aegis, Authy, 1Password, Bitwarden, and any TOTP app.</p>
+        </div>
 
-        <ol class="steps">
-            <li>Install an authenticator app on your phone if you haven't already.</li>
-            <li>
-                Scan the QR code below — or enter the secret key manually if your app supports it.
+        <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-body">Install an authenticator app on your phone if you haven't already.</div>
+        </div>
+
+        <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-body">
+                <span>Open your app and scan the QR code below.</span>
                 <div class="qr-wrap">
                     <canvas id="qr-canvas"></canvas>
                 </div>
-                <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:0.5rem">Or enter this secret manually:</p>
-                <div class="secret-wrap">{{ secret }}</div>
-            </li>
-            <li>Enter the 6-digit code your app shows to confirm setup.</li>
-        </ol>
+                <p style="font-size:0.75rem; color:var(--text-muted); margin-top:0.5rem">Can't scan? Enter this secret key manually in your app:</p>
+                <div class="secret-box">{{ secret }}</div>
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-body">Enter the 6-digit code from your app below to confirm setup.</div>
+        </div>
+
+        <hr class="divider">
 
         <form method="POST" action="/2fa/setup">
             <div style="margin-bottom:1rem">
@@ -218,13 +219,15 @@ document.getElementById('totp_code').addEventListener('input', function() {
     this.value = this.value.replace(/\D/g, '').slice(0, 6);
 });
 
-QRCode.toCanvas(document.getElementById('qr-canvas'), '{{ otpauth_uri|raw }}', {
-    width: 220,
+var otpauthUri = {{ otpauth_uri|json_encode }};
+
+QRCode.toCanvas(document.getElementById('qr-canvas'), otpauthUri, {
+    width: 200,
     margin: 2,
     color: { dark: '#000000', light: '#ffffff' }
 }, function(err) {
     if (err) {
-        document.querySelector('.qr-wrap').innerHTML = '<p style="color:var(--text-muted); font-size:0.8rem">QR code unavailable. Use the secret key below.</p>';
+        document.querySelector('.qr-wrap').innerHTML = '<p style="padding:1rem; color:#555; font-size:0.8rem">QR unavailable — use the secret key above.</p>';
     }
 });
 </script>
