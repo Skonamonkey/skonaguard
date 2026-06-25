@@ -40,7 +40,19 @@ No subscriptions. No cloud. No vendor lock-in. Your private keys never leave you
 
 ## Quick install
 
-No git required — just `curl` and Docker.
+**Prerequisites:** Docker and curl. That's it — no git required.
+
+```bash
+# Install Docker (if not already installed)
+curl -fsSL https://get.docker.com | sh
+
+# Install curl (if not already installed — most distros include it)
+apt-get install -y curl   # Debian / Ubuntu
+# or
+yum install -y curl        # RHEL / CentOS / Fedora
+```
+
+Then:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Skonamonkey/skonaguard/main/install.sh -o /tmp/skonaguard-install.sh
