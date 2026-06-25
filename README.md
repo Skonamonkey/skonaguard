@@ -40,7 +40,7 @@ No subscriptions. No cloud. No vendor lock-in. Your private keys never leave you
 
 ## Quick install
 
-**Prerequisites:** Docker and curl. That's it — no git required.
+**Prerequisites:** Docker and curl. That's it.
 
 ```bash
 # Install Docker (if not already installed)
