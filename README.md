@@ -20,6 +20,10 @@
   <a href="https://buymeacoffee.com/skonamonkey"><img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-support%20this%20project-FFDD00?style=flat&logo=buy-me-a-coffee&logoColor=black" alt="Buy Me a Coffee"></a>
 </p>
 
+<p align="center">
+  <img src="screenshots/dashboard.png" alt="SkonaGuard Dashboard" width="100%">
+</p>
+
 ---
 
 ## What is SkonaGuard?
@@ -67,6 +71,10 @@ From zero to running VPN in under 5 minutes.
 | **Live dashboard** | Connected peers, handshake age, endpoint, TX/RX — auto-refreshed every 10 seconds |
 | **Setup wizard** | Guided first-run: server IP, subnet, port, admin credentials. Locked after completion |
 | **Single SQLite file** | Everything in one `.db` file, volume-mounted outside the container. Backup = copy one file |
+
+<p align="center">
+  <img src="screenshots/acl.png" alt="SkonaGuard Access Rules" width="100%">
+</p>
 
 ---
 
