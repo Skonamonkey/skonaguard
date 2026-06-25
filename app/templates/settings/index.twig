@@ -96,6 +96,56 @@
     </div>
 </div>
 
+<!-- Two-Factor Authentication -->
+<div class="card">
+    <div class="card-header">
+        <div class="card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+            Two-Factor Authentication
+        </div>
+    </div>
+    <div class="card-body">
+        <p style="color:var(--text-muted); font-size:0.875rem; margin-bottom:16px">
+            Protect your account with a TOTP authenticator app (Google Authenticator, Aegis, Authy, etc.). When enabled, a 6-digit code is required after each login.
+        </p>
+
+        {% if user_has_2fa %}
+        <div style="display:flex; align-items:center; gap:10px; padding:12px 14px; background:var(--color-success-muted, rgba(34,197,94,0.1)); border:1px solid var(--color-success, #22c55e); border-radius:var(--radius-sm); margin-bottom:16px">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;color:var(--color-success,#22c55e);flex-shrink:0"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            <span style="font-weight:600; font-size:0.875rem">2FA is active on your account</span>
+        </div>
+        <form method="POST" action="/2fa/disable" onsubmit="return confirm('Disable two-factor authentication? Your account will only be protected by your password.')">
+            <button type="submit" class="btn btn-danger btn-sm">Disable 2FA</button>
+        </form>
+        {% else %}
+        <div style="display:flex; align-items:center; gap:10px; padding:12px 14px; background:var(--color-warning-muted, rgba(245,158,11,0.1)); border:1px solid var(--color-warning, #f59e0b); border-radius:var(--radius-sm); margin-bottom:16px">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;color:var(--color-warning,#f59e0b);flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <span style="font-weight:600; font-size:0.875rem">2FA is not enabled on your account</span>
+        </div>
+        <a href="/2fa/setup" class="btn btn-primary btn-sm">Enable 2FA</a>
+        {% endif %}
+
+        <hr style="border:none; border-top:1px solid var(--border-color); margin:20px 0">
+        <p style="color:var(--text-muted); font-size:0.875rem; margin-bottom:16px">
+            <strong>Global policy:</strong> Require all admin users to set up 2FA. Users without 2FA will be prompted to configure it on their next login.
+        </p>
+        <form method="POST" action="/settings">
+            <input type="hidden" name="action" value="2fa_global">
+            <label style="display:flex; align-items:center; gap:12px; cursor:pointer; margin-bottom:18px">
+                <div style="position:relative; width:44px; height:24px; flex-shrink:0">
+                    <input type="checkbox" name="require_2fa" id="require2fa-toggle" value="1" style="opacity:0; width:0; height:0; position:absolute"
+                        {{ (settings.require_2fa ?? '0') == '1' ? 'checked' : '' }}>
+                    <span id="require2fa-track" style="position:absolute; inset:0; border-radius:12px; background:{{ (settings.require_2fa ?? '0') == '1' ? 'var(--color-primary)' : 'var(--border-color)' }}; transition:background 0.2s">
+                        <span id="require2fa-thumb" style="position:absolute; top:3px; left:{{ (settings.require_2fa ?? '0') == '1' ? '23px' : '3px' }}; width:18px; height:18px; border-radius:50%; background:#fff; transition:left 0.2s"></span>
+                    </span>
+                </div>
+                <span style="font-weight:600">Require 2FA for all users</span>
+            </label>
+            <button type="submit" class="btn btn-primary">Apply Policy</button>
+        </form>
+    </div>
+</div>
+
 <!-- ACL Enforcement -->
 <div class="card">
     <div class="card-header">
@@ -253,6 +303,17 @@ function updatePolicyHighlight() {
     if (restLabel) restLabel.style.borderColor = val === 'restrictive' ? 'var(--color-danger)' : 'var(--border-input)';
 }
 policyRadios.forEach(r => r.addEventListener('change', updatePolicyHighlight));
+
+const require2faToggle = document.getElementById('require2fa-toggle');
+const require2faTrack  = document.getElementById('require2fa-track');
+const require2faThumb  = document.getElementById('require2fa-thumb');
+if (require2faToggle) {
+    require2faToggle.addEventListener('change', () => {
+        const on = require2faToggle.checked;
+        require2faTrack.style.background = on ? 'var(--color-primary)' : 'var(--border-color)';
+        require2faThumb.style.left = on ? '23px' : '3px';
+    });
+}
 
 const dnsToggle = document.getElementById('dns-toggle');
 const dnsTrack  = document.getElementById('dns-track');

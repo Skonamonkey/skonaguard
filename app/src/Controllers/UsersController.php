@@ -18,7 +18,7 @@ class UsersController
 
     public function index(Request $request, Response $response): Response
     {
-        $users = $this->db->query("SELECT u.*, GROUP_CONCAT(uz.zone_id) as zone_ids FROM users u LEFT JOIN user_zones uz ON uz.user_id = u.id GROUP BY u.id ORDER BY u.created_at");
+        $users = $this->db->query("SELECT u.id, u.username, u.display_name, u.role, u.created_at, (u.totp_secret IS NOT NULL AND u.totp_secret != '') as has_2fa, GROUP_CONCAT(uz.zone_id) as zone_ids FROM users u LEFT JOIN user_zones uz ON uz.user_id = u.id GROUP BY u.id ORDER BY u.created_at");
         $zones = $this->db->query("SELECT * FROM zones WHERE is_system = 0 ORDER BY name");
 
         return $this->view->render($response, 'users/index.twig', [
@@ -127,6 +127,21 @@ class UsersController
             $_SESSION['flash_error'] = str_contains($e->getMessage(), 'UNIQUE') ? "Username \"{$username}\" already exists." : 'Error updating user.';
         }
 
+        return $response->withHeader('Location', '/users')->withStatus(302);
+    }
+
+    public function reset2fa(Request $request, Response $response, string $id): Response
+    {
+        $userId = (int) $id;
+        $user   = $this->db->queryOne("SELECT * FROM users WHERE id = ?", [$userId]);
+
+        if (!$user) {
+            $_SESSION['flash_error'] = 'User not found.';
+            return $response->withHeader('Location', '/users')->withStatus(302);
+        }
+
+        $this->db->execute("UPDATE users SET totp_secret = NULL WHERE id = ?", [$userId]);
+        $_SESSION['flash_success'] = "2FA reset for \"{$user['username']}\". They will be prompted to set it up on next login (if 2FA is required globally).";
         return $response->withHeader('Location', '/users')->withStatus(302);
     }
 

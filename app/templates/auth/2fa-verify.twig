@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Two-Factor Authentication &mdash; SkonaGuard</title>
+    <link rel="icon" href="/assets/favicon.ico">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/assets/theme.css">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: var(--font-family);
+            background: var(--surface-bg);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .login-wrap { width: 100%; max-width: 400px; }
+
+        .login-logo {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .login-logo img { height: 52px; margin-bottom: 0.75rem; }
+        .login-logo h1 {
+            font-size: var(--font-xl);
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+        .login-logo p {
+            color: var(--text-secondary);
+            font-size: var(--font-sm);
+            margin-top: 0.25rem;
+        }
+
+        .card {
+            background: var(--surface-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+        }
+
+        .alert-error {
+            background: var(--color-danger-muted);
+            border: 1px solid var(--color-danger);
+            color: var(--color-danger);
+            border-radius: var(--radius-md);
+            padding: 0.75rem 1rem;
+            font-size: var(--font-sm);
+            margin-bottom: 1.25rem;
+        }
+
+        .form-group { margin-bottom: 1.25rem; }
+
+        label {
+            display: block;
+            font-size: var(--font-sm);
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            background: var(--surface-input);
+            border: 1px solid var(--border-input);
+            border-radius: var(--radius-md);
+            color: var(--text-primary);
+            font-family: var(--font-family);
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: 0.3em;
+            text-align: center;
+            padding: 0.65rem 0.9rem;
+            outline: none;
+            transition: border-color var(--transition), box-shadow var(--transition);
+        }
+        input:focus {
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px var(--color-primary-muted);
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--color-primary);
+            color: #fff;
+            border: none;
+            border-radius: var(--radius-md);
+            font-family: var(--font-family);
+            font-size: var(--font-base);
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 0.5rem;
+            transition: background var(--transition);
+        }
+        .btn-primary:hover { background: var(--color-primary-hover); }
+
+        .icon-wrap {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        .icon-wrap svg {
+            width: 48px;
+            height: 48px;
+            color: var(--color-primary);
+        }
+
+        .hint {
+            text-align: center;
+            font-size: var(--font-sm);
+            color: var(--text-muted);
+            margin-top: 1.25rem;
+        }
+
+        .back-link {
+            text-align: center;
+            margin-top: 1.5rem;
+            font-size: var(--font-sm);
+        }
+        .back-link a {
+            color: var(--color-primary);
+            text-decoration: none;
+        }
+
+        .login-footer {
+            text-align: center;
+            margin-top: 1.5rem;
+            font-size: var(--font-sm);
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+<div class="login-wrap">
+    <div class="login-logo">
+        <img src="/assets/icon.png" alt="SkonaGuard">
+        <h1>SkonaGuard</h1>
+        <p>Two-Factor Authentication</p>
+    </div>
+
+    <div class="card">
+        <div class="icon-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                <path d="M9 12l2 2 4-4"/>
+            </svg>
+        </div>
+
+        {% if error %}
+            <div class="alert-error">{{ error }}</div>
+        {% endif %}
+
+        <form method="POST" action="/2fa/verify">
+            <div class="form-group">
+                <label for="totp_code">Authenticator Code</label>
+                <input type="text" id="totp_code" name="totp_code" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" placeholder="000000" required autofocus autocomplete="one-time-code">
+            </div>
+            <button type="submit" class="btn-primary">Verify</button>
+        </form>
+
+        <p class="hint">Open your authenticator app and enter the 6-digit code.</p>
+    </div>
+
+    <div class="back-link"><a href="/login">&larr; Back to login</a></div>
+    <div class="login-footer">SkonaGuard &mdash; Skonamonkey Solutions</div>
+</div>
+<script>
+document.getElementById('totp_code').addEventListener('input', function() {
+    this.value = this.value.replace(/\D/g, '').slice(0, 6);
+    if (this.value.length === 6) {
+        this.closest('form').submit();
+    }
+});
+</script>
+</body>
+</html>

@@ -27,9 +27,12 @@ class SettingsController
             $settings[$row['key']] = $row['value'];
         }
 
+        $currentUser = $this->db->queryOne("SELECT totp_secret FROM users WHERE id = ?", [(int) $_SESSION['user_id']]);
+
         return $this->view->render($response, 'settings/index.twig', [
-            'active_nav' => 'settings',
-            'settings'   => $settings,
+            'active_nav'    => 'settings',
+            'settings'      => $settings,
+            'user_has_2fa'  => !empty($currentUser['totp_secret']),
         ]);
     }
 
@@ -48,6 +51,10 @@ class SettingsController
 
         if ($action === 'dns') {
             return $this->updateDns($response, $body);
+        }
+
+        if ($action === '2fa_global') {
+            return $this->update2faGlobal($response, $body);
         }
 
         $serverIp  = trim($body['server_public_ip'] ?? '');
@@ -138,6 +145,14 @@ class SettingsController
 
         $this->db->execute("UPDATE users SET password = ? WHERE id = ?", [password_hash($new, PASSWORD_BCRYPT), $user['id']]);
         $_SESSION['flash_success'] = 'Password changed successfully.';
+        return $response->withHeader('Location', '/settings')->withStatus(302);
+    }
+
+    private function update2faGlobal(Response $response, array $body): Response
+    {
+        $require = isset($body['require_2fa']) ? '1' : '0';
+        $this->db->execute("INSERT OR REPLACE INTO settings (key, value) VALUES ('require_2fa', ?)", [$require]);
+        $_SESSION['flash_success'] = 'Two-factor authentication policy ' . ($require === '1' ? 'enabled — all users must set up 2FA on next login.' : 'disabled.');
         return $response->withHeader('Location', '/settings')->withStatus(302);
     }
 }

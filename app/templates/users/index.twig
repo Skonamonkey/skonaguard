@@ -27,6 +27,7 @@
                     <th>Display Name</th>
                     <th>Role</th>
                     <th>Zone Access</th>
+                    <th>2FA</th>
                     <th>Created</th>
                     <th></th>
                 </tr>
@@ -64,9 +65,21 @@
                             <span style="color:var(--color-warning)">No zones assigned</span>
                         {% endif %}
                     </td>
+                    <td>
+                        {% if user.has_2fa %}
+                            <span class="badge badge-green" title="Two-factor authentication enabled">&#10003; On</span>
+                        {% else %}
+                            <span class="badge" style="color:var(--text-muted)">Off</span>
+                        {% endif %}
+                    </td>
                     <td style="color:var(--text-muted); font-size:0.8rem">{{ user.created_at|slice(0,10) }}</td>
                     <td style="text-align:right">
                         <button class="btn btn-ghost btn-sm" onclick='openEditModal({{ user|json_encode }}, {{ zones|json_encode }})'>Edit</button>
+                        {% if user.has_2fa and user.id != session.user_id %}
+                        <form method="POST" action="/users/{{ user.id }}/reset-2fa" style="display:inline" onsubmit="return confirm('Reset 2FA for {{ user.username }}? They will need to set it up again.')">
+                            <button type="submit" class="btn btn-ghost btn-sm" title="Reset 2FA">Reset 2FA</button>
+                        </form>
+                        {% endif %}
                         {% if user.id != session.user_id %}
                         <form method="POST" action="/users/{{ user.id }}/delete" style="display:inline" onsubmit="return confirm('Delete user {{ user.username }}?')">
                             <button type="submit" class="btn btn-danger btn-sm">Delete</button>
@@ -75,7 +88,7 @@
                     </td>
                 </tr>
                 {% else %}
-                <tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:2rem">No users yet.</td></tr>
+                <tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:2rem">No users yet.</td></tr>
                 {% endfor %}
             </tbody>
         </table>

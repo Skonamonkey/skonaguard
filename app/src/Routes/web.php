@@ -35,6 +35,12 @@ $app->get('/login', [AuthController::class, 'showLogin']);
 $app->post('/login', [AuthController::class, 'login']);
 $app->get('/logout', [AuthController::class, 'logout']);
 
+$app->get('/2fa/verify', [AuthController::class, 'show2faVerify']);
+$app->post('/2fa/verify', [AuthController::class, 'verify2fa']);
+$app->get('/2fa/setup', [AuthController::class, 'show2faSetup']);
+$app->post('/2fa/setup', [AuthController::class, 'confirm2faSetup']);
+$app->post('/2fa/disable', [AuthController::class, 'disable2fa'])->add(AuthMiddleware::class);
+
 $app->get('/dl/{token}', [PeersController::class, 'downloadViaToken']);
 
 $app->group('', function (\Slim\Routing\RouteCollectorProxy $group) {
@@ -78,4 +84,5 @@ $app->group('', function (\Slim\Routing\RouteCollectorProxy $group) {
     $group->post('/users', [UsersController::class, 'store']);
     $group->post('/users/{id:[0-9]+}', [UsersController::class, 'update']);
     $group->post('/users/{id:[0-9]+}/delete', [UsersController::class, 'destroy']);
+    $group->post('/users/{id:[0-9]+}/reset-2fa', [UsersController::class, 'reset2fa']);
 })->add(RoleMiddleware::require('superadmin'))->add(AuthMiddleware::class);

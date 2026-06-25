@@ -112,6 +112,7 @@ $alterations = [
     "ALTER TABLE peers ADD COLUMN dns_alias TEXT",
     "ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'superadmin'",
     "ALTER TABLE users ADD COLUMN display_name TEXT",
+    "ALTER TABLE users ADD COLUMN totp_secret TEXT",
 ];
 foreach ($alterations as $sql) {
     try { $pdo->exec($sql); } catch (\Exception $e) { /* column already exists */ }
@@ -136,6 +137,7 @@ $dnsDefaults = [
     ['dns_enabled',  '0'],
     ['dns_domain',   'skona'],
     ['dns_upstream', '9.9.9.9'],
+    ['require_2fa',  '0'],
 ];
 foreach ($dnsDefaults as [$key, $val]) {
     $pdo->prepare("INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)")->execute([$key, $val]);
