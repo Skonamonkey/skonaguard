@@ -65,6 +65,7 @@ From zero to running VPN in under 5 minutes.
 | **ACL engine** | iptables-backed access control between zones and individual IPs. Types: Full Access, Inbound Only, ICMP Only, Port Specific, Deny. Permissive or restrictive default policy |
 | **Raw chain viewer** | Inspect live iptables rules and packet counters directly from the UI — no CLI required for troubleshooting |
 | **Built-in DNS** | Optional internal DNS server (dnsproxy). Peers get names like `mikespc.home.skona`. Supports DoT and DoH upstreams. PTR records synthesised automatically — `ping hostname` resolves instantly |
+| **Two-factor authentication** | TOTP-based 2FA per user. Configurable global policy to require 2FA for all admin accounts |
 | **Multi-admin RBAC** | Three roles: Super Admin (full access), Admin (peers and profiles), Zone Admin (own zones only) |
 | **LAN / WAN endpoints** | Generate peer configs for the public IP or LAN IP — split download button when both are configured |
 | **Host zone** | Protected system zone representing the VPN server. ACL rules control which peers can reach it. Cannot be deleted |
@@ -138,6 +139,7 @@ Tailscale is a genuinely impressive piece of engineering and the right answer fo
 | Subnet conflict detection | ✅ | ❌ | ❌ | ❌ |
 | Built-in DNS with PTR records | ✅ | ❌ | ✅ (MagicDNS) | ✅ |
 | DNS over TLS / DNS over HTTPS | ✅ | ❌ | ❌ | ❌ |
+| Two-factor authentication (TOTP) | ✅ | ❌ | ✅ | ❌ |
 | Multi-admin with role-based access | ✅ | ❌ | ✅ | Limited |
 | Zone-scoped admin accounts | ✅ | ❌ | ❌ | ❌ |
 | QR code peer setup | ✅ | ✅ | ✅ | ❌ |
