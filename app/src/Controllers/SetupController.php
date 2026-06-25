@@ -32,9 +32,10 @@ class SetupController
             'error'       => $_SESSION['setup_error'] ?? null,
             'data'        => $_SESSION['setup_data'] ?? [],
             'detected_ip' => $this->detectPublicIp(),
-            'env_server_ip' => $_ENV['SERVER_PUBLIC_IP'] ?? getenv('SERVER_PUBLIC_IP') ?: '',
-            'env_wg_port'   => $_ENV['WG_PORT']          ?? getenv('WG_PORT')          ?: '51820',
-            'env_wg_subnet' => $_ENV['WG_SUBNET']        ?? getenv('WG_SUBNET')        ?: '172.16.0.0/16',
+            'env_server_ip'      => $_ENV['SERVER_PUBLIC_IP'] ?? getenv('SERVER_PUBLIC_IP') ?: '',
+            'env_wg_port'        => $_ENV['WG_PORT']          ?? getenv('WG_PORT')          ?: '51820',
+            'env_wg_subnet'      => $_ENV['WG_SUBNET']        ?? getenv('WG_SUBNET')        ?: '172.16.0.0/16',
+            'env_zone_subnet'    => $this->suggestFirstZone($_ENV['WG_SUBNET'] ?? getenv('WG_SUBNET') ?: '172.16.0.0/16'),
         ]);
     }
 
@@ -189,6 +190,13 @@ class SetupController
     {
         $_SESSION['setup_error'] = $message;
         return $response->withHeader('Location', "/setup/$step")->withStatus(302);
+    }
+
+    private function suggestFirstZone(string $subnet): string
+    {
+        $ip = explode('/', $subnet)[0];
+        $parts = explode('.', $ip);
+        return ($parts[0] ?? '172') . '.' . ($parts[1] ?? '16') . '.1.0/24';
     }
 
     private function detectPublicIp(): string

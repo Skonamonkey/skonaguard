@@ -289,7 +289,7 @@
                 </div>
                 <div class="form-group">
                     <label>Zone subnet <span class="tip">— the IP range for this zone's peers</span></label>
-                    <input type="text" name="zone_subnet" value="{{ data.zone_subnet ?? '172.16.1.0/24' }}" required>
+                    <input type="text" name="zone_subnet" value="{{ data.zone_subnet ?? env_zone_subnet }}" required>
                     <div class="hint">Must be within your VPN subnet ({{ data.wg_subnet ?? env_wg_subnet }}). e.g. a /24 within it.</div>
                 </div>
                 <div class="form-group">
