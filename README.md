@@ -248,9 +248,11 @@ Internet
                         └──────────┘  └────────┘  └────────┘
 ```
 
-### Proxmox LXC
+### Proxmox (and other hypervisors)
 
-Run SkonaGuard inside a Proxmox LXC container. The LXC needs `NET_ADMIN` and `/dev/net/tun` access — see the [Installation: Proxmox & LXC](https://github.com/Skonamonkey/skonaguard/wiki/Installation-Proxmox-LXC) wiki page for the exact config lines.
+The easiest self-hosted option is a small VM — Ubuntu Server or Debian minimal, 1–2 vCPUs, 1 GB RAM. The VM is completely isolated from the host with no special configuration required. Install exactly as you would on a VPS.
+
+If you'd rather save the overhead of a full VM, SkonaGuard also runs inside a Proxmox LXC container — but the LXC needs `NET_ADMIN` and `/dev/net/tun` access configured first. See the [Installation: Proxmox, LXC & VM](https://github.com/Skonamonkey/skonaguard/wiki/Installation-Proxmox-LXC) wiki page for both approaches.
 
 Alternatively, run just WireGuard on the Proxmox host as a gateway peer — the host advertises its LAN subnet and all VMs/containers get VPN access without WireGuard on each one.
 
