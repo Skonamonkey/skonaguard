@@ -82,7 +82,8 @@
             display: inline-block;
             width: 100%;
         }
-        #qr-canvas { display: block; margin: 0 auto; max-width: 100%; }
+        #qr-canvas { display: flex; justify-content: center; align-items: center; }
+        #qr-canvas canvas, #qr-canvas img { display: block; margin: 0 auto; }
 
         .secret-box {
             background: var(--surface-input);
@@ -213,7 +214,7 @@
     <div class="login-footer">SkonaGuard &mdash; Skonamonkey Solutions</div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script src="/assets/qrcode.min.js"></script>
 <script>
 document.getElementById('totp_code').addEventListener('input', function() {
     this.value = this.value.replace(/\D/g, '').slice(0, 6);
@@ -221,15 +222,17 @@ document.getElementById('totp_code').addEventListener('input', function() {
 
 var otpauthUri = {{ otpauth_uri|json_encode }};
 
-QRCode.toCanvas(document.getElementById('qr-canvas'), otpauthUri, {
-    width: 200,
-    margin: 2,
-    color: { dark: '#000000', light: '#ffffff' }
-}, function(err) {
-    if (err) {
-        document.querySelector('.qr-wrap').innerHTML = '<p style="padding:1rem; color:#555; font-size:0.8rem">QR unavailable — use the secret key above.</p>';
-    }
-});
+try {
+    new QRCode(document.getElementById('qr-canvas'), {
+        text: otpauthUri,
+        width: 200,
+        height: 200,
+        colorDark: '#000000',
+        colorLight: '#ffffff',
+    });
+} catch (e) {
+    document.querySelector('.qr-wrap').innerHTML = '<p style="padding:1rem; color:#555; font-size:0.8rem">QR unavailable — use the secret key above.</p>';
+}
 </script>
 </body>
 </html>
