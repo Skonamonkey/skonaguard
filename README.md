@@ -6,7 +6,12 @@
 
 <p align="center">
   <strong>Self-hosted WireGuard VPN manager. Zones, ACLs, DNS, multi-admin — one Docker container.</strong><br>
-  Built on <a href="https://www.wireguard.com">WireGuard</a> and <a href="https://github.com/WireGuard/wireguard-go">wireguard-go</a>. Works with <strong>standard, unmodified WireGuard clients</strong> on Windows, macOS, Linux, iOS, and Android.
+  Built on <a href="https://www.wireguard.com">WireGuard</a> and <a href="https://github.com/WireGuard/wireguard-go">wireguard-go</a>. Works with <strong>standard, unmodified WireGuard clients</strong> on
+  <a href="https://www.wireguard.com/install/">Windows</a>,
+  <a href="https://apps.apple.com/app/wireguard/id1451685025">macOS</a>,
+  Linux (kernel 5.6+),
+  <a href="https://apps.apple.com/app/wireguard/id1441195209">iOS</a>, and
+  <a href="https://play.google.com/store/apps/details?id=com.wireguard.android">Android</a>.
 </p>
 
 <p align="center">
@@ -102,7 +107,7 @@ Tailscale is a genuinely impressive piece of engineering and the right answer fo
 
 ### Headscale
 
-[Headscale](https://github.com/juanfont/headscale) is the self-hosted Tailscale control plane — well-engineered and genuinely impressive. But it re-implements the Tailscale coordination protocol, which means you still need Tailscale clients on every device. SkonaGuard uses the standard WireGuard clients that ship with every major OS. No protocol lock-in, no custom client, no drift risk between client and server versions.
+[Headscale](https://github.com/juanfont/headscale) is the self-hosted Tailscale control plane — well-engineered and genuinely impressive. But it re-implements the Tailscale coordination protocol, which means you still need Tailscale clients on every device. SkonaGuard uses the standard WireGuard clients available for every major OS. No protocol lock-in, no custom client, no drift risk between client and server versions.
 
 ---
 
