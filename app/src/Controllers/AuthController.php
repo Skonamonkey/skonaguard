@@ -21,6 +21,56 @@ class AuthController
         $this->tfa = new TwoFactorAuth('SkonaGuard');
     }
 
+    private const MAX_ATTEMPTS    = 5;
+    private const LOCKOUT_MINUTES = 15;
+
+    private function clientIp(Request $request): string
+    {
+        $params = $request->getServerParams();
+        return $params['HTTP_X_FORWARDED_FOR']
+            ? explode(',', $params['HTTP_X_FORWARDED_FOR'])[0]
+            : ($params['REMOTE_ADDR'] ?? '0.0.0.0');
+    }
+
+    private function isLockedOut(string $ip): bool
+    {
+        $count = (int) ($this->db->queryOne(
+            "SELECT COUNT(*) as c FROM login_attempts
+             WHERE ip_address = ? AND attempted_at >= datetime('now', ? || ' minutes')",
+            [$ip, '-' . self::LOCKOUT_MINUTES]
+        )['c'] ?? 0);
+        return $count >= self::MAX_ATTEMPTS;
+    }
+
+    private function minutesUntilUnlock(string $ip): int
+    {
+        $oldest = $this->db->queryOne(
+            "SELECT attempted_at FROM login_attempts
+             WHERE ip_address = ? AND attempted_at >= datetime('now', ? || ' minutes')
+             ORDER BY attempted_at ASC LIMIT 1",
+            [$ip, '-' . self::LOCKOUT_MINUTES]
+        )['attempted_at'] ?? null;
+        if (!$oldest) return 0;
+        $unlockAt = strtotime($oldest) + (self::LOCKOUT_MINUTES * 60);
+        return (int) max(1, ceil(($unlockAt - time()) / 60));
+    }
+
+    private function recordFailedAttempt(string $ip): void
+    {
+        $this->db->execute(
+            "INSERT INTO login_attempts (ip_address) VALUES (?)",
+            [$ip]
+        );
+        $this->db->execute(
+            "DELETE FROM login_attempts WHERE attempted_at < datetime('now', '-1 hour')"
+        );
+    }
+
+    private function clearAttempts(string $ip): void
+    {
+        $this->db->execute("DELETE FROM login_attempts WHERE ip_address = ?", [$ip]);
+    }
+
     public function showLogin(Request $request, Response $response): Response
     {
         if (!empty($_SESSION['user_id'])) {
@@ -34,6 +84,14 @@ class AuthController
 
     public function login(Request $request, Response $response): Response
     {
+        $ip = $this->clientIp($request);
+
+        if ($this->isLockedOut($ip)) {
+            $mins = $this->minutesUntilUnlock($ip);
+            $_SESSION['login_error'] = "Too many failed attempts. Try again in {$mins} minute" . ($mins !== 1 ? 's' : '') . ".";
+            return $response->withHeader('Location', '/login')->withStatus(302);
+        }
+
         $body     = (array) $request->getParsedBody();
         $username = trim($body['username'] ?? '');
         $password = $body['password'] ?? '';
@@ -44,10 +102,12 @@ class AuthController
         );
 
         if (!$user || !password_verify($password, $user['password'])) {
+            $this->recordFailedAttempt($ip);
             $_SESSION['login_error'] = 'Invalid username or password.';
             return $response->withHeader('Location', '/login')->withStatus(302);
         }
 
+        $this->clearAttempts($ip);
         unset($_SESSION['login_error']);
 
         $require2fa = ($this->db->queryOne("SELECT value FROM settings WHERE key = 'require_2fa'")['value'] ?? '0') === '1';
@@ -94,6 +154,15 @@ class AuthController
             return $response->withHeader('Location', '/login')->withStatus(302);
         }
 
+        $ip = $this->clientIp($request);
+
+        if ($this->isLockedOut($ip)) {
+            $mins = $this->minutesUntilUnlock($ip);
+            unset($_SESSION['pending_2fa']);
+            $_SESSION['login_error'] = "Too many failed attempts. Try again in {$mins} minute" . ($mins !== 1 ? 's' : '') . ".";
+            return $response->withHeader('Location', '/login')->withStatus(302);
+        }
+
         $body = (array) $request->getParsedBody();
         $code = preg_replace('/\s+/', '', $body['totp_code'] ?? '');
 
@@ -101,10 +170,12 @@ class AuthController
         $user   = $this->db->queryOne("SELECT * FROM users WHERE id = ?", [$userId]);
 
         if (!$user || !$this->tfa->verifyCode($user['totp_secret'], $code)) {
+            $this->recordFailedAttempt($ip);
             $_SESSION['2fa_error'] = 'Invalid code. Please try again.';
             return $response->withHeader('Location', '/2fa/verify')->withStatus(302);
         }
 
+        $this->clearAttempts($ip);
         unset($_SESSION['2fa_error']);
         $this->completeLogin($user);
         return $response->withHeader('Location', '/dashboard')->withStatus(302);

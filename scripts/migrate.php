@@ -123,7 +123,15 @@ CREATE TABLE IF NOT EXISTS user_zones (
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     zone_id INTEGER NOT NULL REFERENCES zones(id) ON DELETE CASCADE,
     PRIMARY KEY (user_id, zone_id)
-)
+);
+
+CREATE TABLE IF NOT EXISTS login_attempts (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    ip_address   TEXT    NOT NULL,
+    attempted_at TEXT    NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_login_attempts_ip ON login_attempts (ip_address, attempted_at);
 ");
 
 $hostIp     = $_ENV['WG_HOST_IP'] ?? getenv('WG_HOST_IP') ?: '172.16.0.2';
