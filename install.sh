@@ -103,7 +103,9 @@ WG_SUBNET=${WG_SUBNET:-172.16.0.0/16}
 read -rp "  UI port [8080]: " UI_PORT
 UI_PORT=${UI_PORT:-8080}
 
-APP_SECRET=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 64 | head -n 1)
+set +o pipefail
+APP_SECRET=$(tr -dc 'a-zA-Z0-9' < /dev/urandom | head -c 64)
+set -o pipefail
 
 cat > "$INSTALL_DIR/.env" <<EOF
 APP_ENV=production
