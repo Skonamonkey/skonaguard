@@ -1,5 +1,6 @@
 services:
   skonaguard:
+    image: ghcr.io/skonamonkey/skonaguard:latest
     build:
       context: .
       dockerfile: docker/Dockerfile

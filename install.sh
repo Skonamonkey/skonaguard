@@ -72,8 +72,11 @@ EOF
 mkdir -p data/wireguard data/database
 
 echo ""
+echo -e "${BLUE}Pulling SkonaGuard image...${NC}"
+docker compose pull
+
 echo -e "${BLUE}Starting SkonaGuard...${NC}"
-docker compose up -d --build
+docker compose up -d
 
 echo -e "${BLUE}Adding host route so VPN peer IPs are preserved in audit logs...${NC}"
 INSTALL_DIR=$(realpath .)

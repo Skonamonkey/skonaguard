@@ -278,7 +278,8 @@ SkonaGuard exposes its UI on port 8080. Place it behind NPM (or any reverse prox
 ```bash
 cd /srv/skonaguard
 git pull origin main
-docker compose up -d --build
+docker compose pull
+docker compose up -d
 ```
 
 The database and WireGuard config are volume-mounted and never touched by a rebuild. Migrations run automatically on container start.
