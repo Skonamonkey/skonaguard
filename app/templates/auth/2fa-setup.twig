@@ -220,7 +220,7 @@ document.getElementById('totp_code').addEventListener('input', function() {
     this.value = this.value.replace(/\D/g, '').slice(0, 6);
 });
 
-var otpauthUri = {{ otpauth_uri|json_encode }};
+var otpauthUri = {{ otpauth_uri|json_encode|raw }};
 
 try {
     new QRCode(document.getElementById('qr-canvas'), {
