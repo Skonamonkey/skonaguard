@@ -82,7 +82,7 @@ From zero to running VPN in under 5 minutes.
 - Mobile-first or BYOD deployments where you can't control the device
 - A genuinely managed service where someone else handles the infrastructure
 
-Tailscale is excellent — we use it ourselves for some things. The difference is: Tailscale runs your network on their infrastructure. SkonaGuard runs it on yours.
+Tailscale is excellent — we have used it ourselves for some things in the past. The difference is: Tailscale runs your network on their infrastructure. SkonaGuard runs it on yours.
 
 ---
 
