@@ -191,7 +191,7 @@ echo -e "  ${BOLD}Note:${NC} Make sure port ${WG_PORT}/udp and ${UI_PORT}/tcp ar
 echo ""
 echo -e "  ${BOLD}Reverse proxy (NPM etc):${NC} If you're fronting SkonaGuard with a Docker-based"
 echo -e "  reverse proxy, add the ${CYAN}skonaguard${NC} network to its compose file and restart it."
-echo -e "  Then point your proxy host to ${CYAN}http://skonaguard:${UI_PORT}${NC}."
+echo -e "  Then point your proxy host to ${CYAN}http://skonaguard:8080${NC} (always the internal port)."
 echo -e "  Without the shared network it will get a 502."
 echo ""
 echo -e "  ${BOLD}Upgrading later:${NC}"
