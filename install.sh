@@ -103,9 +103,8 @@ WG_SUBNET=${WG_SUBNET:-172.16.0.0/16}
 read -rp "  UI port [8080]: " UI_PORT
 UI_PORT=${UI_PORT:-8080}
 
-set +o pipefail
-APP_SECRET=$(tr -dc 'a-zA-Z0-9' < /dev/urandom | head -c 64)
-set -o pipefail
+APP_SECRET=$(dd if=/dev/urandom bs=1 count=128 2>/dev/null | base64 | tr -dc 'a-zA-Z0-9' | cut -c1-64)
+WG_SUBNET_HUB=$(echo "$WG_SUBNET" | sed 's/\.[0-9]*\/[0-9]*/\.1/')
 
 cat > "$INSTALL_DIR/.env" <<EOF
 APP_ENV=production
@@ -114,7 +113,7 @@ APP_SECRET=${APP_SECRET}
 
 WG_PORT=${WG_PORT}
 WG_SUBNET=${WG_SUBNET}
-WG_SUBNET_HUB=$(echo "$WG_SUBNET" | sed 's/\.[0-9]*\/[0-9]*/\.1/')
+WG_SUBNET_HUB=${WG_SUBNET_HUB}
 SERVER_PUBLIC_IP=${SERVER_IP}
 
 UI_PORT=${UI_PORT}
