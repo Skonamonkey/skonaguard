@@ -76,6 +76,10 @@ From zero to running VPN in under 5 minutes.
   <img src="screenshots/acl.png" alt="SkonaGuard Access Rules" width="100%">
 </p>
 
+<p align="center">
+  <img src="screenshots/dns.png" alt="SkonaGuard Built-in DNS" width="100%">
+</p>
+
 ---
 
 ## Who is SkonaGuard for?
