@@ -32,6 +32,9 @@ class SetupController
             'error'       => $_SESSION['setup_error'] ?? null,
             'data'        => $_SESSION['setup_data'] ?? [],
             'detected_ip' => $this->detectPublicIp(),
+            'env_server_ip' => $_ENV['SERVER_PUBLIC_IP'] ?? getenv('SERVER_PUBLIC_IP') ?: '',
+            'env_wg_port'   => $_ENV['WG_PORT']          ?? getenv('WG_PORT')          ?: '51820',
+            'env_wg_subnet' => $_ENV['WG_SUBNET']        ?? getenv('WG_SUBNET')        ?: '172.16.0.0/16',
         ]);
     }
 

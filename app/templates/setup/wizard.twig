@@ -254,20 +254,22 @@
                         <span class="tip">— the internet-facing IP your peers will connect to</span>
                     </label>
                     <input type="text" name="server_ip"
-                           value="{{ data.server_ip ?? detected_ip }}" required autocomplete="off">
-                    {% if detected_ip %}
+                           value="{{ data.server_ip ?? (env_server_ip ?: detected_ip) }}" required autocomplete="off">
+                    {% if env_server_ip %}
+                        <div class="hint">Pre-filled from your install configuration.</div>
+                    {% elseif detected_ip %}
                         <div class="hint">Auto-detected: {{ detected_ip }}</div>
                     {% endif %}
                 </div>
                 <div class="row-2">
                     <div class="form-group">
                         <label>WireGuard port</label>
-                        <input type="number" name="wg_port" value="{{ data.wg_port ?? 51820 }}" min="1" max="65535" required>
+                        <input type="number" name="wg_port" value="{{ data.wg_port ?? env_wg_port }}" min="1" max="65535" required>
                         <div class="hint">Default: 51820/UDP</div>
                     </div>
                     <div class="form-group">
                         <label>VPN subnet</label>
-                        <input type="text" name="wg_subnet" value="{{ data.wg_subnet ?? '172.16.0.0/16' }}" required>
+                        <input type="text" name="wg_subnet" value="{{ data.wg_subnet ?? env_wg_subnet }}" required>
                         <div class="hint">e.g. 172.16.0.0/16</div>
                     </div>
                 </div>
@@ -288,7 +290,7 @@
                 <div class="form-group">
                     <label>Zone subnet <span class="tip">— the IP range for this zone's peers</span></label>
                     <input type="text" name="zone_subnet" value="{{ data.zone_subnet ?? '172.16.1.0/24' }}" required>
-                    <div class="hint">Must be within your VPN subnet ({{ data.wg_subnet ?? '172.16.0.0/16' }}). e.g. 172.16.1.0/24</div>
+                    <div class="hint">Must be within your VPN subnet ({{ data.wg_subnet ?? env_wg_subnet }}). e.g. a /24 within it.</div>
                 </div>
                 <div class="form-group">
                     <label>Description <span class="tip">(optional)</span></label>
