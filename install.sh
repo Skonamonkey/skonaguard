@@ -124,13 +124,13 @@ EOF
 
 info ".env written"
 
-# ── Ensure proxy-net exists (used by Nginx Proxy Manager; created if absent) ──
+# ── Ensure skonaguard network exists for Nginx Proxy Manager integration ──────
 
-if ! docker network inspect proxy-net &>/dev/null; then
-    docker network create proxy-net &>/dev/null || true
-    info "Created proxy-net Docker network (not found — created empty)"
+if ! docker network inspect skonaguard &>/dev/null; then
+    docker network create skonaguard &>/dev/null || true
+    info "Created skonaguard Docker network"
 else
-    info "proxy-net Docker network already exists"
+    info "skonaguard Docker network already exists"
 fi
 
 # ── Pull image and start ───────────────────────────────────────────────────────

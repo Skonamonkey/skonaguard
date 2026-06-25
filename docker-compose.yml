@@ -29,8 +29,8 @@ services:
       - UI_BIND=${UI_BIND:-0.0.0.0}
     networks:
       - default
-      - proxy-net
+      - skonaguard
 
 networks:
-  proxy-net:
+  skonaguard:
     external: true
