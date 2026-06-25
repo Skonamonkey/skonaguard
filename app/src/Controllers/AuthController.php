@@ -7,7 +7,6 @@ namespace SkonaGuard\Controllers;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use RobThree\Auth\TwoFactorAuth;
-use RobThree\Auth\Providers\Qr\NullQrCodeProvider;
 use Slim\Views\Twig;
 use SkonaGuard\Models\Database;
 
@@ -19,7 +18,7 @@ class AuthController
         private Twig $view,
         private Database $db
     ) {
-        $this->tfa = new TwoFactorAuth(new NullQrCodeProvider(), 'SkonaGuard');
+        $this->tfa = new TwoFactorAuth('SkonaGuard');
     }
 
     public function showLogin(Request $request, Response $response): Response
