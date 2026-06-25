@@ -40,16 +40,16 @@ No subscriptions. No cloud. No vendor lock-in. Your private keys never leave you
 
 ## Quick install
 
+No git required — just `curl` and Docker.
+
 ```bash
-git clone https://github.com/Skonamonkey/skonaguard.git
-cd skonaguard
-chmod +x install.sh
-sudo ./install.sh
+curl -fsSL https://raw.githubusercontent.com/Skonamonkey/skonaguard/main/install.sh -o /tmp/skonaguard-install.sh
+sudo bash /tmp/skonaguard-install.sh
 ```
 
-The script detects your public IP, prompts for subnet and port choices, writes `.env`, builds the container, and installs a systemd unit to keep routing persistent across reboots. Then open `http://<your-ip>:8080` and complete the 4-step setup wizard.
+The script detects your public IP, prompts for subnet and port choices, writes `.env`, pulls the pre-built image from GitHub Container Registry, starts the container, and installs a systemd unit to keep routing persistent across reboots. Then open `http://<your-ip>:8080` and complete the 4-step setup wizard.
 
-From zero to running VPN in under 5 minutes.
+From zero to running VPN in under 10 minutes.
 
 ---
 
@@ -277,7 +277,6 @@ SkonaGuard exposes its UI on port 8080. Place it behind NPM (or any reverse prox
 
 ```bash
 cd /srv/skonaguard
-git pull origin main
 docker compose pull
 docker compose up -d
 ```

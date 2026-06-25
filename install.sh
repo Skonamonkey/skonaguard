@@ -1,5 +1,22 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [ ! -t 0 ]; then
+    echo ""
+    echo "  ERROR: This installer requires an interactive terminal."
+    echo "  Running via 'curl | bash' pipes stdin away from the terminal."
+    echo ""
+    echo "  Please run it like this instead:"
+    echo ""
+    echo "    curl -fsSL https://raw.githubusercontent.com/Skonamonkey/skonaguard/main/install.sh -o /tmp/skonaguard-install.sh"
+    echo "    bash /tmp/skonaguard-install.sh"
+    echo ""
+    exit 1
+fi
+
+REPO="Skonamonkey/skonaguard"
+INSTALL_DIR="/srv/skonaguard"
+COMPOSE_URL="https://raw.githubusercontent.com/${REPO}/main/docker-compose.yml"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -15,52 +32,87 @@ echo "  ║    Self-hosted WireGuard VPN Manager  ║"
 echo "  ╚═══════════════════════════════════════╝"
 echo -e "${NC}"
 
-if ! command -v docker &>/dev/null; then
-    echo -e "${RED}Docker is not installed. Please install Docker first.${NC}"
-    echo "  https://docs.docker.com/engine/install/"
+info()  { echo -e "  ${GREEN}✓${NC}  $*"; }
+warn()  { echo -e "  ${RED}⚠${NC}  $*"; }
+
+# ── Prerequisites ──────────────────────────────────────────────────────────────
+
+if [ "$EUID" -ne 0 ]; then
+    warn "Please run as root: sudo bash install.sh"
     exit 1
 fi
 
-if ! command -v docker compose &>/dev/null && ! docker compose version &>/dev/null 2>&1; then
-    echo -e "${RED}Docker Compose is not installed.${NC}"
+for cmd in docker curl; do
+    if ! command -v "$cmd" &>/dev/null; then
+        warn "$cmd is required but not installed."
+        [ "$cmd" = "docker" ] && echo "      Install with: curl -fsSL https://get.docker.com | sh"
+        [ "$cmd" = "curl" ]   && echo "      Install with: apt-get install -y curl"
+        exit 1
+    fi
+done
+
+if ! docker compose version &>/dev/null 2>&1; then
+    warn "Docker Compose v2 not found. Please upgrade Docker."
+    echo "      https://docs.docker.com/compose/migrate/"
     exit 1
 fi
 
+# ── Installation directory ─────────────────────────────────────────────────────
+
+if [ -d "$INSTALL_DIR" ] && [ -f "$INSTALL_DIR/.env" ]; then
+    warn "Existing installation found at ${INSTALL_DIR}."
+    read -rp "  Overwrite config? Data will NOT be deleted. (y/N): " overwrite
+    [[ "$overwrite" =~ ^[Yy]$ ]] || { echo "  Aborted."; exit 0; }
+fi
+
+mkdir -p "$INSTALL_DIR/data/wireguard" "$INSTALL_DIR/data/database"
+info "Directory ready: ${INSTALL_DIR}"
+
+# ── Download compose file ──────────────────────────────────────────────────────
+
+echo ""
+echo -e "${BLUE}Downloading docker-compose.yml...${NC}"
+curl -fsSL "$COMPOSE_URL" -o "$INSTALL_DIR/docker-compose.yml"
+info "docker-compose.yml downloaded"
+
+# ── Configuration ──────────────────────────────────────────────────────────────
+
+echo ""
 echo -e "${BLUE}Detecting your server's public IP...${NC}"
 DETECTED_IP=$(curl -s --max-time 5 ifconfig.me || curl -s --max-time 5 api.ipify.org || echo "")
 
 if [ -n "$DETECTED_IP" ]; then
     echo -e "  Detected: ${BOLD}$DETECTED_IP${NC}"
-    read -p "  Is this correct? [Y/n]: " CONFIRM_IP
+    read -rp "  Is this correct? [Y/n]: " CONFIRM_IP
     if [[ "$CONFIRM_IP" =~ ^[Nn]$ ]]; then
-        read -p "  Enter your server's public IP: " SERVER_IP
+        read -rp "  Enter your server's public IP: " SERVER_IP
     else
         SERVER_IP=$DETECTED_IP
     fi
 else
-    read -p "  Could not detect IP. Enter your server's public IP: " SERVER_IP
+    read -rp "  Could not detect IP. Enter your server's public IP: " SERVER_IP
 fi
 
 echo ""
-read -p "  WireGuard port [51820]: " WG_PORT
+read -rp "  WireGuard port [51820]: " WG_PORT
 WG_PORT=${WG_PORT:-51820}
 
-read -p "  VPN subnet [172.16.0.0/16]: " WG_SUBNET
+read -rp "  VPN subnet [172.16.0.0/16]: " WG_SUBNET
 WG_SUBNET=${WG_SUBNET:-172.16.0.0/16}
 
-read -p "  UI port [8080]: " UI_PORT
+read -rp "  UI port [8080]: " UI_PORT
 UI_PORT=${UI_PORT:-8080}
 
 APP_SECRET=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 64 | head -n 1)
 
-cat > .env <<EOF
+cat > "$INSTALL_DIR/.env" <<EOF
 APP_ENV=production
 APP_URL=http://${SERVER_IP}:${UI_PORT}
 APP_SECRET=${APP_SECRET}
 
 WG_PORT=${WG_PORT}
 WG_SUBNET=${WG_SUBNET}
-WG_SUBNET_HUB=$(echo $WG_SUBNET | sed 's/\.[0-9]*\/[0-9]*/\.1/')
+WG_SUBNET_HUB=$(echo "$WG_SUBNET" | sed 's/\.[0-9]*\/[0-9]*/\.1/')
 SERVER_PUBLIC_IP=${SERVER_IP}
 
 UI_PORT=${UI_PORT}
@@ -69,23 +121,39 @@ UI_BIND=0.0.0.0
 SETUP_COMPLETE=false
 EOF
 
-mkdir -p data/wireguard data/database
+info ".env written"
+
+# ── Ensure proxy-net exists (used by Nginx Proxy Manager; created if absent) ──
+
+if ! docker network inspect proxy-net &>/dev/null; then
+    docker network create proxy-net &>/dev/null || true
+    info "Created proxy-net Docker network (not found — created empty)"
+else
+    info "proxy-net Docker network already exists"
+fi
+
+# ── Pull image and start ───────────────────────────────────────────────────────
 
 echo ""
 echo -e "${BLUE}Pulling SkonaGuard image...${NC}"
+cd "$INSTALL_DIR"
 docker compose pull
+info "Image pulled"
 
 echo -e "${BLUE}Starting SkonaGuard...${NC}"
 docker compose up -d
+info "Container started"
 
-echo -e "${BLUE}Adding host route so VPN peer IPs are preserved in audit logs...${NC}"
-INSTALL_DIR=$(realpath .)
+# ── Host route for peer IP preservation ───────────────────────────────────────
+
+echo ""
+echo -e "${BLUE}Adding host route so VPN peer IPs appear in audit logs...${NC}"
 CONTAINER_IP=$(docker inspect skonaguard --format '{{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}}' 2>/dev/null | tr ' ' '\n' | grep -v '^$' | head -1)
 if [ -n "$CONTAINER_IP" ]; then
     ip route replace "${WG_SUBNET}" via "${CONTAINER_IP}" 2>/dev/null || true
-    echo -e "  Route added: ${WG_SUBNET} via ${CONTAINER_IP}"
+    info "Route added: ${WG_SUBNET} via ${CONTAINER_IP}"
 else
-    echo -e "${RED}  Warning: could not detect container IP — route not added${NC}"
+    warn "Could not detect container IP — host route not added"
 fi
 
 UNIT_FILE=/etc/systemd/system/skonaguard-route.service
@@ -109,12 +177,17 @@ UNIT
 sed -i "s|__INSTALL_DIR__|${INSTALL_DIR}|g" "$UNIT_FILE"
 systemctl daemon-reload
 systemctl enable skonaguard-route.service
-echo -e "  Systemd unit enabled: skonaguard-route.service"
+info "Systemd unit enabled: skonaguard-route.service"
+
+# ── Done ──────────────────────────────────────────────────────────────────────
 
 echo ""
 echo -e "${GREEN}${BOLD}SkonaGuard is running!${NC}"
 echo ""
 echo -e "  Open ${CYAN}http://${SERVER_IP}:${UI_PORT}${NC} to complete setup"
 echo ""
-echo -e "${BOLD}Note:${NC} Make sure port ${WG_PORT}/udp and ${UI_PORT}/tcp are open in your firewall."
+echo -e "  ${BOLD}Note:${NC} Make sure port ${WG_PORT}/udp and ${UI_PORT}/tcp are open in your firewall."
+echo ""
+echo -e "  ${BOLD}Upgrading later:${NC}"
+echo -e "    cd ${INSTALL_DIR} && docker compose pull && docker compose up -d"
 echo ""
