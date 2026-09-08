@@ -90,6 +90,21 @@ class WireGuardService
         if ($dns !== '') {
             $conf .= "DNS = {$dns}\n";
         }
+
+        // Gateway peers (site-to-site routers): the device routes its own LAN
+        // into the tunnel. wg-quick must NOT install a route for the site
+        // subnet itself (black-holes the LAN), so disable wg-quick's table
+        // management and add routes/firewall manually.
+        $isPeerGateway     = ($peer['is_gateway'] ?? ($profile['is_gateway'] ?? 0)) == 1;
+        $peerGatewaySubnet = $peer['gateway_subnet'] ?? ($profile['gateway_subnet'] ?? null);
+        if ($isPeerGateway && $peerGatewaySubnet) {
+            $wgSubnet = $_ENV['WG_SUBNET'] ?? ($this->db->queryOne("SELECT value FROM settings WHERE key = 'wg_subnet'")['value'] ?? '172.16.0.0/16');
+            $egress   = "\$(ip route get 1.1.1.1 2>/dev/null | awk '{print $5; exit}')";
+            $conf  = str_replace("Address = {$clientAddress}\n", "Address = {$clientAddress}\nTable = off\n", $conf);
+            $conf .= "PostUp = ip route add {$wgSubnet} dev %i; sysctl -w net.ipv4.ip_forward=1; iptables -t nat -C POSTROUTING -s {$wgSubnet} -o {$egress} -j MASQUERADE 2>/dev/null || iptables -t nat -A POSTROUTING -s {$wgSubnet} -o {$egress} -j MASQUERADE\n";
+            $conf .= "PreDown = ip route del {$wgSubnet} dev %i 2>/dev/null; iptables -t nat -D POSTROUTING -s {$wgSubnet} -o {$egress} -j MASQUERADE 2>/dev/null\n";
+        }
+
         $conf .= "\n";
         $conf .= "[Peer]\n";
         $conf .= "PublicKey = {$serverPublicKey}\n";
@@ -158,6 +173,28 @@ class WireGuardService
         } while ($attempts < 3);
 
         unlink($tmp);
+
+        // wg syncconf only updates cryptokey routing — never kernel routes.
+        // Gateway peers advertise site subnets (e.g. 192.168.15.0/24); ensure
+        // each has a kernel route via the tunnel so the server can route INTO them.
+        foreach ($peers as $peer) {
+            $profile = null;
+            if ($peer['profile_id']) {
+                $profile = $this->db->queryOne("SELECT * FROM profiles WHERE id = ?", [(int) $peer['profile_id']]);
+            }
+            $isGateway     = $peer['is_gateway'] ?? ($profile['is_gateway'] ?? 0);
+            $gatewaySubnet = $peer['gateway_subnet'] ?? ($profile['gateway_subnet'] ?? null);
+            if (!$isGateway || !$gatewaySubnet) {
+                continue;
+            }
+            foreach (array_map('trim', explode(',', $gatewaySubnet)) as $sub) {
+                if ($sub === '' || substr_count($sub, '/') !== 1) {
+                    continue;
+                }
+                // idempotent: fails silently if route already present
+                shell_exec('ip route add ' . escapeshellarg($sub) . ' dev ' . self::WG_INTERFACE . ' 2>/dev/null');
+            }
+        }
 
         $this->syncAcl();
 
