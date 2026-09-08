@@ -99,10 +99,19 @@ class WireGuardService
         $peerGatewaySubnet = $peer['gateway_subnet'] ?? ($profile['gateway_subnet'] ?? null);
         if ($isPeerGateway && $peerGatewaySubnet) {
             $wgSubnet = $_ENV['WG_SUBNET'] ?? ($this->db->queryOne("SELECT value FROM settings WHERE key = 'wg_subnet'")['value'] ?? '172.16.0.0/16');
-            $egress   = "\$(ip route get 1.1.1.1 2>/dev/null | awk '{print $5; exit}')";
+            // Multi-homed gateways (e.g. dual-bridge Proxmox hosts) may route the
+            // VPN's traffic out MORE than one interface (LAN + separate IoT VLAN),
+            // so MASQ on every LAN-side broadcast-capable interface, not just the
+            // default-route egress. Loopback and the tunnel itself are excluded.
             $conf  = str_replace("Address = {$clientAddress}\n", "Address = {$clientAddress}\nTable = off\n", $conf);
-            $conf .= "PostUp = ip route add {$wgSubnet} dev %i; sysctl -w net.ipv4.ip_forward=1; iptables -t nat -C POSTROUTING -s {$wgSubnet} -o {$egress} -j MASQUERADE 2>/dev/null || iptables -t nat -A POSTROUTING -s {$wgSubnet} -o {$egress} -j MASQUERADE\n";
-            $conf .= "PreDown = ip route del {$wgSubnet} dev %i 2>/dev/null; iptables -t nat -D POSTROUTING -s {$wgSubnet} -o {$egress} -j MASQUERADE 2>/dev/null\n";
+
+            $upParts   = ["ip route add {$wgSubnet} dev %i", "sysctl -w net.ipv4.ip_forward=1"];
+            $downParts = ["ip route del {$wgSubnet} dev %i 2>/dev/null"];
+            $ifaceList = "\$(ls /sys/class/net 2>/dev/null | grep -vE '^(lo|wg[0-9]+|docker[0-9]+|veth[0-9a-f]+|tun[0-9]+|br-[0-9a-f]+)\$')";
+            $upParts[]   = "for i in {$ifaceList}; do iptables -t nat -C POSTROUTING -s {$wgSubnet} -o \$i -j MASQUERADE 2>/dev/null || iptables -t nat -A POSTROUTING -s {$wgSubnet} -o \$i -j MASQUERADE 2>/dev/null; done";
+            $downParts[] = "for i in {$ifaceList}; do iptables -t nat -D POSTROUTING -s {$wgSubnet} -o \$i -j MASQUERADE 2>/dev/null; done";
+            $conf .= "PostUp = " . implode('; ', $upParts) . "\n";
+            $conf .= "PreDown = " . implode('; ', $downParts) . "\n";
         }
 
         $conf .= "\n";
